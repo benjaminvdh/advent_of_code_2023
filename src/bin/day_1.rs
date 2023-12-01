@@ -21,11 +21,7 @@ impl Solver for Solver1 {
 }
 
 fn parse_line_part_1(line: &str) -> u32 {
-    let mut iter = line
-        .chars()
-        .map(|c| u32::from(c))
-        .filter(|&c| 48 <= c && c <= 57)
-        .map(|c| c - 48);
+    let mut iter = line.chars().filter_map(|c| c.to_digit(10));
 
     let first = iter.next().unwrap();
     let last = iter.next_back().unwrap_or(first);
