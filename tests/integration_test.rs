@@ -7,6 +7,11 @@ fn day_1() {
     test(env!("CARGO_BIN_EXE_day_1"), 1);
 }
 
+#[test]
+fn day_2() {
+    test(env!("CARGO_BIN_EXE_day_2"), 2);
+}
+
 fn parse_string(string: &str) -> (&str, &str) {
     let mut splits = string.split_terminator("\0");
     (splits.next().unwrap(), splits.next().unwrap())

@@ -2,11 +2,17 @@ use std::str::FromStr;
 
 use aoc::Solver;
 
-#[derive(Debug, PartialEq)]
+#[derive(Default, Debug, PartialEq)]
 struct Cubes {
     red: u32,
     green: u32,
     blue: u32,
+}
+
+impl Cubes {
+    fn get_power(&self) -> u32 {
+        self.red * self.green * self.blue
+    }
 }
 
 struct Solver2;
@@ -14,7 +20,7 @@ struct Solver2;
 impl Solver for Solver2 {
     type Input = Vec<Vec<Cubes>>;
     type Output1 = usize;
-    type Output2 = usize;
+    type Output2 = u32;
 
     fn parse(input: String) -> Self::Input {
         input.lines().map(|line| parse_line(line)).collect()
@@ -29,8 +35,8 @@ impl Solver for Solver2 {
             .sum()
     }
 
-    fn part_2(_input: &Self::Input) -> Self::Output2 {
-        todo!()
+    fn part_2(input: &Self::Input) -> Self::Output2 {
+        input.iter().map(|game| get_power(game)).sum()
     }
 }
 
@@ -41,20 +47,17 @@ fn parse_line(line: &str) -> Vec<Cubes> {
 }
 
 fn parse_grab(grab: &str) -> Cubes {
-    let mut cubes = Cubes {
-        red: 0,
-        green: 0,
-        blue: 0,
-    };
+    let mut cubes = Cubes::default();
 
     for colors in grab.split(", ") {
         let mut splits = colors.split(' ');
-        let (num, color) = (splits.next().unwrap(), splits.next().unwrap());
 
-        match color {
-            "red" => cubes.red = u32::from_str(num).unwrap(),
-            "green" => cubes.green = u32::from_str(num).unwrap(),
-            "blue" => cubes.blue = u32::from_str(num).unwrap(),
+        let num = u32::from_str(splits.next().unwrap()).unwrap();
+
+        match splits.next().unwrap() {
+            "red" => cubes.red = num,
+            "green" => cubes.green = num,
+            "blue" => cubes.blue = num,
             _ => panic!("Invalid color"),
         }
     }
@@ -65,6 +68,16 @@ fn parse_grab(grab: &str) -> Cubes {
 fn is_game_possible(game: &[Cubes]) -> bool {
     game.iter()
         .all(|grab| grab.red <= 12 && grab.green <= 13 && grab.blue <= 14)
+}
+
+fn get_power(game: &[Cubes]) -> u32 {
+    game.iter()
+        .fold(Cubes::default(), |acc, grab| Cubes {
+            red: acc.red.max(grab.red),
+            green: acc.green.max(grab.green),
+            blue: acc.blue.max(grab.blue),
+        })
+        .get_power()
 }
 
 fn main() {
@@ -109,5 +122,10 @@ Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green";
     #[test]
     fn part_1() {
         assert_eq!(Solver2::part_1(&get_input()), 8);
+    }
+
+    #[test]
+    fn part_2() {
+        assert_eq!(Solver2::part_2(&get_input()), 2286);
     }
 }
