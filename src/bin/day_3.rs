@@ -52,8 +52,14 @@ impl Solver for Solver3 {
         (part_numbers, symbols)
     }
 
-    fn part_1(_input: &Self::Input) -> Self::Output1 {
-        todo!()
+    fn part_1(input: &Self::Input) -> Self::Output1 {
+        let (part_numbers, symbols) = input;
+
+        part_numbers
+            .iter()
+            .filter(|part_number| is_next_to_symbol(part_number, &symbols))
+            .map(|part_number| part_number.number)
+            .sum()
     }
 
     fn part_2(_input: &Self::Input) -> Self::Output2 {
@@ -98,6 +104,14 @@ fn parse_symbol_line(y: usize, line: &str) -> Vec<Symbol> {
     line.char_indices()
         .flat_map(|(x, c)| Symbol::try_from((x, y, c)))
         .collect()
+}
+
+fn is_next_to_symbol(part_number: &PartNumber, symbols: &[Symbol]) -> bool {
+    symbols.iter().any(|symbol| {
+        part_number.y.abs_diff(symbol.y) <= 1
+            && part_number.x_start.saturating_sub(1) <= symbol.x
+            && symbol.x <= part_number.x_end + 1
+    })
 }
 
 fn main() {
@@ -198,5 +212,10 @@ mod tests {
 .664.598..";
 
         assert_eq!(Solver3::parse(input.to_string()), get_input());
+    }
+
+    #[test]
+    fn part_1() {
+        assert_eq!(Solver3::part_1(&get_input()), 4361);
     }
 }
