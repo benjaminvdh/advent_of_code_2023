@@ -1,3 +1,60 @@
+//! This library defines a framework for solving Advent of Code puzzles.
+//! Copy-and-paste the code fragment below into a new src/bin/day_<number>.rs file.
+//! Change the types of Input, Output1 and Output2, and fill in the todo!() statements
+//! to solve the puzzles.
+//!
+//! ```no_run
+//! struct Solver;
+//!
+//! impl aoc::Solver for Solver {
+//!     type Input = Vec<u32>;
+//!     type Output1 = u32;
+//!     type Output2 = u32;
+//!
+//!     fn parse(_input: &str) -> Self::Input {
+//!         todo!()
+//!     }
+//!
+//!     fn part_1(_input: &Self::Input) -> Self::Output1 {
+//!         todo!()
+//!     }
+//!
+//!     fn part_2(_input: &Self::Input) -> Self::Output2 {
+//!         todo!()
+//!     }
+//! }
+//!
+//! fn main() {
+//!     aoc::run::<Solver>();
+//! }
+//!
+//! #[cfg(test)]
+//! mod tests {
+//!     use super::*;
+//!
+//!     fn get_input() -> <Solver as aoc::Solver>::Input {
+//!         todo!()
+//!     }
+//!
+//!     #[test]
+//!     fn parsing() {
+//!         let input = todo!();
+//!
+//!         assert_eq!(<Solver as aoc::Solver>::parse(input), get_input());
+//!     }
+//!
+//!     #[test]
+//!     fn part_1() {
+//!         assert_eq!(<Solver as aoc::Solver>::part_1(&get_input()), todo!());
+//!     }
+//!
+//!     #[test]
+//!     fn part_2() {
+//!         assert_eq!(<Solver as aoc::Solver>::part_2(&get_input()), todo!());
+//!     }
+//! }
+//! ```
+
 use std::fmt::Display;
 use std::fs;
 
