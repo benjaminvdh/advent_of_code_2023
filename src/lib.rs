@@ -10,7 +10,7 @@ pub trait Solver {
     type Output1: Display;
     type Output2: Display;
 
-    fn parse(input: String) -> Self::Input;
+    fn parse(input: &str) -> Self::Input;
     fn part_1(input: &Self::Input) -> Self::Output1;
     fn part_2(input: &Self::Input) -> Self::Output2;
 }
@@ -19,7 +19,7 @@ pub fn run<S: Solver>() {
     let args = args::parse();
 
     let file_contents = fs::read_to_string(&args.path).unwrap();
-    let input = S::parse(file_contents);
+    let input = S::parse(&file_contents);
 
     let part_1 = S::part_1(&input);
     print_result(part_1, 1, &args);

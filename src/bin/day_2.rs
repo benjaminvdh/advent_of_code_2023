@@ -22,7 +22,7 @@ impl Solver for Solver2 {
     type Output1 = usize;
     type Output2 = u32;
 
-    fn parse(input: String) -> Self::Input {
+    fn parse(input: &str) -> Self::Input {
         input.lines().map(|line| parse_line(line)).collect()
     }
 
@@ -116,7 +116,7 @@ Game 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red
 Game 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red
 Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green";
 
-        assert_eq!(Solver2::parse(input.to_string()), get_input());
+        assert_eq!(Solver2::parse(input), get_input());
     }
 
     #[test]

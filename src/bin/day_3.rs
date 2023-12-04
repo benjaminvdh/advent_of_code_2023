@@ -41,7 +41,7 @@ impl Solver for Solver3 {
     type Output1 = u32;
     type Output2 = u32;
 
-    fn parse(input: String) -> Self::Input {
+    fn parse(input: &str) -> Self::Input {
         let part_numbers = input
             .lines()
             .enumerate()
@@ -271,7 +271,7 @@ mod tests {
 ...$.*....
 .664.598..";
 
-        assert_eq!(Solver3::parse(input.to_string()), get_input());
+        assert_eq!(Solver3::parse(input), get_input());
     }
 
     #[test]

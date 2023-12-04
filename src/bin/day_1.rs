@@ -7,7 +7,7 @@ impl Solver for Solver1 {
     type Output1 = u32;
     type Output2 = usize;
 
-    fn parse(input: String) -> Self::Input {
+    fn parse(input: &str) -> Self::Input {
         input.lines().map(|line| line.to_string()).collect()
     }
 
@@ -66,8 +66,7 @@ mod tests {
         let input = r"1abc2
 pqr3stu8vwx
 a1b2c3d4e5f
-treb7uchet"
-            .to_string();
+treb7uchet";
         assert_eq!(Solver1::part_1(&Solver1::parse(input)), 142);
     }
 
@@ -79,8 +78,7 @@ abcone2threexyz
 xtwone3four
 4nineeightseven2
 zoneight234
-7pqrstsixteen"
-            .to_string();
+7pqrstsixteen";
         assert_eq!(Solver1::part_2(&Solver1::parse(input)), 281);
     }
 }
