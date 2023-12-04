@@ -1,8 +1,6 @@
 use std::str::FromStr;
 
-use aoc::Solver;
-
-struct Solver4;
+struct Solver;
 
 #[derive(Debug, PartialEq)]
 struct Card {
@@ -33,7 +31,7 @@ impl Card {
     }
 }
 
-impl Solver for Solver4 {
+impl aoc::Solver for Solver {
     type Input = Vec<Card>;
     type Output1 = u32;
     type Output2 = usize;
@@ -83,7 +81,7 @@ fn parse_numbers(numbers: &str) -> Vec<u32> {
 }
 
 fn main() {
-    aoc::run::<Solver4>();
+    aoc::run::<Solver>();
 }
 
 #[cfg(test)]
@@ -128,16 +126,16 @@ Card 4: 41 92 73 84 69 | 59 84 76 51 58  5 54 83
 Card 5: 87 83 26 28 32 | 88 30 70 12 93 22 82 36
 Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11";
 
-        assert_eq!(Solver4::parse(input), get_input());
+        assert_eq!(<Solver as aoc::Solver>::parse(input), get_input());
     }
 
     #[test]
     fn part_1() {
-        assert_eq!(Solver4::part_1(&get_input()), 13);
+        assert_eq!(<Solver as aoc::Solver>::part_1(&get_input()), 13);
     }
 
     #[test]
     fn part_2() {
-        assert_eq!(Solver4::part_2(&get_input()), 30);
+        assert_eq!(<Solver as aoc::Solver>::part_2(&get_input()), 30);
     }
 }

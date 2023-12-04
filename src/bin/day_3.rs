@@ -1,7 +1,5 @@
 use std::str::FromStr;
 
-use aoc::Solver;
-
 #[derive(Debug, PartialEq)]
 struct PartNumber {
     x_start: usize,
@@ -34,9 +32,9 @@ impl TryFrom<(usize, usize, char)> for Symbol {
     }
 }
 
-struct Solver3;
+struct Solver;
 
-impl Solver for Solver3 {
+impl aoc::Solver for Solver {
     type Input = (Vec<PartNumber>, Vec<Symbol>);
     type Output1 = u32;
     type Output2 = u32;
@@ -151,14 +149,14 @@ fn get_gear_ratio(symbol: &Symbol, part_numbers: &[PartNumber]) -> Option<u32> {
 }
 
 fn main() {
-    aoc::run::<Solver3>();
+    aoc::run::<Solver>();
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn get_input() -> (Vec<PartNumber>, Vec<Symbol>) {
+    fn get_input() -> <super::Solver as aoc::Solver>::Input {
         let part_numbers = vec![
             PartNumber {
                 x_start: 0,
@@ -271,16 +269,16 @@ mod tests {
 ...$.*....
 .664.598..";
 
-        assert_eq!(Solver3::parse(input), get_input());
+        assert_eq!(<Solver as aoc::Solver>::parse(input), get_input());
     }
 
     #[test]
     fn part_1() {
-        assert_eq!(Solver3::part_1(&get_input()), 4361);
+        assert_eq!(<Solver as aoc::Solver>::part_1(&get_input()), 4361);
     }
 
     #[test]
     fn part_2() {
-        assert_eq!(Solver3::part_2(&get_input()), 467835);
+        assert_eq!(<Solver as aoc::Solver>::part_2(&get_input()), 467835);
     }
 }

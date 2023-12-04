@@ -1,7 +1,5 @@
 use std::str::FromStr;
 
-use aoc::Solver;
-
 #[derive(Default, Debug, PartialEq)]
 struct Cubes {
     red: u32,
@@ -15,9 +13,9 @@ impl Cubes {
     }
 }
 
-struct Solver2;
+struct Solver;
 
-impl Solver for Solver2 {
+impl aoc::Solver for Solver {
     type Input = Vec<Vec<Cubes>>;
     type Output1 = usize;
     type Output2 = u32;
@@ -81,7 +79,7 @@ fn get_power(game: &[Cubes]) -> u32 {
 }
 
 fn main() {
-    aoc::run::<Solver2>();
+    aoc::run::<Solver>();
 }
 
 #[cfg(test)]
@@ -98,7 +96,7 @@ mod tests {
         }
     }
 
-    fn get_input() -> Vec<Vec<Cubes>> {
+    fn get_input() -> <Solver as aoc::Solver>::Input {
         vec![
             vec![(4, 0, 3).into(), (1, 2, 6).into(), (0, 2, 0).into()],
             vec![(0, 2, 1).into(), (1, 3, 4).into(), (0, 1, 1).into()],
@@ -116,16 +114,16 @@ Game 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red
 Game 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red
 Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green";
 
-        assert_eq!(Solver2::parse(input), get_input());
+        assert_eq!(<Solver as aoc::Solver>::parse(input), get_input());
     }
 
     #[test]
     fn part_1() {
-        assert_eq!(Solver2::part_1(&get_input()), 8);
+        assert_eq!(<Solver as aoc::Solver>::part_1(&get_input()), 8);
     }
 
     #[test]
     fn part_2() {
-        assert_eq!(Solver2::part_2(&get_input()), 2286);
+        assert_eq!(<Solver as aoc::Solver>::part_2(&get_input()), 2286);
     }
 }

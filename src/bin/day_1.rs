@@ -1,8 +1,6 @@
-use aoc::Solver;
+struct Solver;
 
-struct Solver1;
-
-impl Solver for Solver1 {
+impl aoc::Solver for Solver {
     type Input = Vec<String>;
     type Output1 = u32;
     type Output2 = usize;
@@ -54,24 +52,27 @@ fn parse_line_part_2(line: &str) -> usize {
 }
 
 fn main() {
-    aoc::run::<Solver1>();
+    aoc::run::<Solver>();
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[test]
-    fn part_1() {
+    fn get_input_1() -> <Solver as aoc::Solver>::Input {
         let input = r"1abc2
 pqr3stu8vwx
 a1b2c3d4e5f
 treb7uchet";
-        assert_eq!(Solver1::part_1(&Solver1::parse(input)), 142);
+        <Solver as aoc::Solver>::parse(input)
     }
 
     #[test]
-    fn part_2() {
+    fn part_1() {
+        assert_eq!(<Solver as aoc::Solver>::part_1(&get_input_1()), 142);
+    }
+
+    fn get_input_2() -> <Solver as aoc::Solver>::Input {
         let input = r"two1nine
 eightwothree
 abcone2threexyz
@@ -79,6 +80,12 @@ xtwone3four
 4nineeightseven2
 zoneight234
 7pqrstsixteen";
-        assert_eq!(Solver1::part_2(&Solver1::parse(input)), 281);
+
+        <Solver as aoc::Solver>::parse(input)
+    }
+
+    #[test]
+    fn part_2() {
+        assert_eq!(<Solver as aoc::Solver>::part_2(&get_input_2()), 281);
     }
 }
