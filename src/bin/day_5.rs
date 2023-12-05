@@ -1,18 +1,41 @@
 use std::str::FromStr;
 
-#[derive(Debug, PartialEq)]
-struct Map {
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialOrd, PartialEq)]
+struct Range {
     start: u64,
     dst: u64,
     len: u64,
 }
 
+#[derive(Debug, PartialEq)]
+struct Map {
+    ranges: Vec<Range>,
+}
+
 impl Map {
-    fn transform(&self, seed: u64) -> Option<u64> {
-        if self.start <= seed && seed <= self.start + self.len {
-            Some(seed - self.start + self.dst)
-        } else {
-            None
+    fn new() -> Self {
+        Self { ranges: vec![] }
+    }
+
+    fn add(&mut self, range: Range) {
+        self.ranges.push(range);
+        self.ranges.sort_unstable_by_key(|range| range.start);
+    }
+
+    fn transform(&self, seed: u64) -> u64 {
+        match self.ranges.binary_search_by_key(&seed, |range| range.start) {
+            Ok(index) if self.ranges[index].len >= 1 => self.ranges[index].dst,
+            Ok(_) => seed,
+            Err(0) => seed,
+            Err(index) => {
+                let range = &self.ranges[index - 1];
+
+                if seed < range.start + range.len {
+                    range.dst + seed - range.start
+                } else {
+                    seed
+                }
+            }
         }
     }
 }
@@ -20,7 +43,7 @@ impl Map {
 struct Solver;
 
 impl aoc::Solver for Solver {
-    type Input = (Vec<u64>, [Vec<Map>; 7]);
+    type Input = (Vec<u64>, [Map; 7]);
     type Output1 = u64;
     type Output2 = u64;
 
@@ -45,19 +68,32 @@ impl aoc::Solver for Solver {
         seeds
             .iter()
             .map(|seed| {
-                steps.iter().fold(*seed, |transformed, maps| {
-                    maps.iter()
-                        .filter_map(|map| map.transform(transformed))
-                        .next()
-                        .unwrap_or(transformed)
-                })
+                steps
+                    .iter()
+                    .fold(*seed, |transformed, map| map.transform(transformed))
             })
             .min()
             .unwrap()
     }
 
-    fn part_2(_input: &Self::Input) -> Self::Output2 {
-        todo!()
+    fn part_2(input: &Self::Input) -> Self::Output2 {
+        let (seeds, steps) = input;
+
+        seeds
+            .chunks_exact(2)
+            .map(|chunk| {
+                let (start, len) = (chunk[0], chunk[1]);
+                (start..start + len)
+                    .map(|seed| {
+                        steps
+                            .iter()
+                            .fold(seed, |transformed, map| map.transform(transformed))
+                    })
+                    .min()
+                    .unwrap()
+            })
+            .min()
+            .unwrap()
     }
 }
 
@@ -71,20 +107,22 @@ fn parse_seeds(section: &str) -> Vec<u64> {
         .collect()
 }
 
-fn parse_map(section: &str) -> Vec<Map> {
-    section
-        .lines()
-        .skip(1)
-        .map(|line| parse_map_line(line))
-        .collect()
+fn parse_map(section: &str) -> Map {
+    let mut map = Map::new();
+
+    for range in section.lines().skip(1).map(|line| parse_map_line(line)) {
+        map.add(range);
+    }
+
+    map
 }
 
-fn parse_map_line(line: &str) -> Map {
+fn parse_map_line(line: &str) -> Range {
     let mut numbers = line
         .split_whitespace()
         .map(|number| u64::from_str(number).unwrap());
 
-    Map {
+    Range {
         dst: numbers.next().unwrap(),
         start: numbers.next().unwrap(),
         len: numbers.next().unwrap(),
@@ -99,7 +137,7 @@ fn main() {
 mod tests {
     use super::*;
 
-    impl From<(u64, u64, u64)> for Map {
+    impl From<(u64, u64, u64)> for Range {
         fn from(tuple: (u64, u64, u64)) -> Self {
             Self {
                 dst: tuple.0,
@@ -111,12 +149,12 @@ mod tests {
 
     fn get_input() -> <Solver as aoc::Solver>::Input {
         let seeds = vec![79, 14, 55, 13];
-        let maps = [
+        let ranges = vec![
             vec![(50, 98, 2).into(), (52, 50, 48).into()],
             vec![(0, 15, 37).into(), (37, 52, 2).into(), (39, 0, 15).into()],
             vec![
                 (49, 53, 8).into(),
-                (0, 11, 41).into(),
+                (0, 11, 42).into(),
                 (42, 0, 7).into(),
                 (57, 7, 4).into(),
             ],
@@ -130,6 +168,24 @@ mod tests {
             vec![(60, 56, 37).into(), (56, 93, 4).into()],
         ];
 
+        let mut maps = [
+            Map::new(),
+            Map::new(),
+            Map::new(),
+            Map::new(),
+            Map::new(),
+            Map::new(),
+            Map::new(),
+        ];
+
+        for i in 0..7 {
+            for range in &ranges[i] {
+                maps[i].add(*range);
+            }
+        }
+
+        dbg!(&maps);
+
         (seeds, maps)
     }
 
@@ -137,35 +193,35 @@ mod tests {
     fn parsing() {
         let input = r"seeds: 79 14 55 13
 
-a-to-b map:
+seed-to-soil map:
 50 98 2
 52 50 48
 
-b-to-c map:
+soil-to-fertilizer map:
 0 15 37
 37 52 2
 39 0 15
 
-c-to-d map:
+fertilizer-to-water map:
 49 53 8
-0 11 41
+0 11 42
 42 0 7
 57 7 4
 
-d-to-e map:
+water-to-light map:
 88 18 7
 18 25 70
 
-e-to-f map:
+light-to-temperature map:
 45 77 23
 81 45 19
 68 64 13
 
-f-to-g map:
+temperature-to-humidity map:
 0 69 1
 1 0 69
 
-g-to-h map:
+humidity-to-location map:
 60 56 37
 56 93 4";
 
@@ -179,6 +235,6 @@ g-to-h map:
 
     #[test]
     fn part_2() {
-        //assert_eq!(<Solver as aoc::Solver>::part_2(&get_input()), todo!());
+        assert_eq!(<Solver as aoc::Solver>::part_2(&get_input()), 46);
     }
 }

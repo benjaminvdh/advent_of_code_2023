@@ -22,6 +22,12 @@ fn day_4() {
     test(env!("CARGO_BIN_EXE_day_4"), 4);
 }
 
+#[test]
+#[ignore = "too slow"]
+fn day_5() {
+    test(env!("CARGO_BIN_EXE_day_5"), 5);
+}
+
 fn parse_string(string: &str) -> (&str, &str) {
     let mut splits = string.split_terminator("\0");
     (splits.next().unwrap(), splits.next().unwrap())
