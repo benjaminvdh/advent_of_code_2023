@@ -4,8 +4,8 @@ struct Solver;
 
 #[derive(Debug, PartialEq)]
 struct Race {
-    time: u32,
-    record: u32,
+    time: u64,
+    record: u64,
 }
 
 impl Race {
@@ -17,8 +17,8 @@ impl Race {
     }
 }
 
-impl From<(u32, u32)> for Race {
-    fn from(tuple: (u32, u32)) -> Self {
+impl From<(u64, u64)> for Race {
+    fn from(tuple: (u64, u64)) -> Self {
         Self {
             time: tuple.0,
             record: tuple.1,
@@ -29,7 +29,7 @@ impl From<(u32, u32)> for Race {
 impl aoc::Solver for Solver {
     type Input = Vec<Race>;
     type Output1 = usize;
-    type Output2 = u32;
+    type Output2 = usize;
 
     fn parse(input: &str) -> Self::Input {
         let mut line_iter = input.lines();
@@ -51,15 +51,27 @@ impl aoc::Solver for Solver {
             .product()
     }
 
-    fn part_2(_input: &Self::Input) -> Self::Output2 {
-        todo!()
+    fn part_2(input: &Self::Input) -> Self::Output2 {
+        let total_time_string = input
+            .iter()
+            .fold(String::new(), |acc, race| acc + &race.time.to_string());
+        let total_record_string = input
+            .iter()
+            .fold(String::new(), |acc, race| acc + &race.record.to_string());
+
+        let mega_race = Race {
+            time: u64::from_str(&total_time_string).unwrap(),
+            record: u64::from_str(&total_record_string).unwrap(),
+        };
+
+        mega_race.get_num_winning_strategies()
     }
 }
 
-fn parse_line(line: &str) -> impl Iterator<Item = u32> + '_ {
+fn parse_line(line: &str) -> impl Iterator<Item = u64> + '_ {
     line.split_whitespace()
         .skip(1)
-        .map(|number| u32::from_str(number).unwrap())
+        .map(|number| u64::from_str(number).unwrap())
 }
 
 fn main() {
@@ -100,6 +112,6 @@ Distance:  9  40  200
 
     #[test]
     fn part_2() {
-        assert_eq!(<Solver as aoc::Solver>::part_2(&get_input()), todo!());
+        assert_eq!(<Solver as aoc::Solver>::part_2(&get_input()), 71503);
     }
 }
