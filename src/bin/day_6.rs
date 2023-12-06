@@ -8,6 +8,15 @@ struct Race {
     record: u32,
 }
 
+impl Race {
+    fn get_num_winning_strategies(&self) -> usize {
+        (1..self.time)
+            .map(|hold_time| hold_time * (self.time - hold_time))
+            .filter(|distance| *distance > self.record)
+            .count()
+    }
+}
+
 impl From<(u32, u32)> for Race {
     fn from(tuple: (u32, u32)) -> Self {
         Self {
@@ -19,7 +28,7 @@ impl From<(u32, u32)> for Race {
 
 impl aoc::Solver for Solver {
     type Input = Vec<Race>;
-    type Output1 = u32;
+    type Output1 = usize;
     type Output2 = u32;
 
     fn parse(input: &str) -> Self::Input {
@@ -35,8 +44,11 @@ impl aoc::Solver for Solver {
             .collect()
     }
 
-    fn part_1(_input: &Self::Input) -> Self::Output1 {
-        todo!()
+    fn part_1(input: &Self::Input) -> Self::Output1 {
+        input
+            .iter()
+            .map(|race| race.get_num_winning_strategies())
+            .product()
     }
 
     fn part_2(_input: &Self::Input) -> Self::Output2 {
