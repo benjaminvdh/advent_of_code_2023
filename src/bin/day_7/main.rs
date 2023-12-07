@@ -1,8 +1,12 @@
+mod hand;
+
+use hand::Hand;
+
 use std::str::FromStr;
 
 struct Solver;
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialOrd, PartialEq)]
 enum Card {
     A,
     K,
@@ -40,12 +44,7 @@ impl From<char> for Card {
     }
 }
 
-#[derive(Debug, PartialEq)]
-struct Hand {
-    cards: [Card; 5],
-}
-
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 struct Game {
     hand: Hand,
     bid: u64,
@@ -53,15 +52,22 @@ struct Game {
 
 impl aoc::Solver for Solver {
     type Input = Vec<Game>;
-    type Output1 = u32;
+    type Output1 = u64;
     type Output2 = u32;
 
     fn parse(input: &str) -> Self::Input {
         input.lines().map(|line| parse_line(line)).collect()
     }
 
-    fn part_1(_input: &Self::Input) -> Self::Output1 {
-        todo!()
+    fn part_1(input: &Self::Input) -> Self::Output1 {
+        let mut input = input.clone();
+        input.sort_unstable_by_key(|game| game.hand);
+        input
+            .iter()
+            .rev()
+            .enumerate()
+            .map(|(i, game)| (i as u64 + 1) * game.bid)
+            .sum()
     }
 
     fn part_2(_input: &Self::Input) -> Self::Output2 {
@@ -78,9 +84,7 @@ fn parse_line(line: &str) -> Game {
     let bid = u64::from_str(splits.next().unwrap()).unwrap();
 
     Game {
-        hand: Hand {
-            cards: cards.try_into().unwrap(),
-        },
+        hand: Hand::from(<[Card; 5]>::try_from(cards).unwrap()),
         bid,
     }
 }
@@ -96,33 +100,23 @@ mod tests {
     fn get_input() -> <Solver as aoc::Solver>::Input {
         vec![
             Game {
-                hand: Hand {
-                    cards: [Card::C3, Card::C2, Card::T, Card::C3, Card::K],
-                },
+                hand: Hand::from([Card::C3, Card::C2, Card::T, Card::C3, Card::K]),
                 bid: 765,
             },
             Game {
-                hand: Hand {
-                    cards: [Card::T, Card::C5, Card::C5, Card::J, Card::C5],
-                },
+                hand: Hand::from([Card::T, Card::C5, Card::C5, Card::J, Card::C5]),
                 bid: 684,
             },
             Game {
-                hand: Hand {
-                    cards: [Card::K, Card::K, Card::C6, Card::C7, Card::C7],
-                },
+                hand: Hand::from([Card::K, Card::K, Card::C6, Card::C7, Card::C7]),
                 bid: 28,
             },
             Game {
-                hand: Hand {
-                    cards: [Card::K, Card::T, Card::J, Card::J, Card::T],
-                },
+                hand: Hand::from([Card::K, Card::T, Card::J, Card::J, Card::T]),
                 bid: 220,
             },
             Game {
-                hand: Hand {
-                    cards: [Card::Q, Card::Q, Card::Q, Card::J, Card::A],
-                },
+                hand: Hand::from([Card::Q, Card::Q, Card::Q, Card::J, Card::A]),
                 bid: 483,
             },
         ]
@@ -141,7 +135,7 @@ QQQJA 483";
 
     #[test]
     fn part_1() {
-        assert_eq!(<Solver as aoc::Solver>::part_1(&get_input()), todo!());
+        assert_eq!(<Solver as aoc::Solver>::part_1(&get_input()), 6440);
     }
 
     #[test]
