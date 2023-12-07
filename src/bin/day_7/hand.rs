@@ -1,42 +1,94 @@
-use std::cmp::Ordering;
-use std::collections::HashMap;
-
 use super::Card;
+
+use std::cmp::Ordering;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Hand {
     cards: [Card; 5],
 }
 
-fn get_card_map(cards: &[Card]) -> HashMap<&Card, usize> {
-    let mut map = HashMap::new();
-
-    for card in cards {
-        *map.entry(card).or_insert(0) += 1;
-    }
-
-    map
-}
-
 impl Hand {
-    fn get_type(&self) -> Type {
-        let map = get_card_map(&self.cards);
+    pub fn get_type(&self) -> Type {
+        let mut cards = self.cards;
+        cards.sort();
+        let [a, b, c, d, e] = &cards;
 
-        if map.values().any(|num| *num == 5) {
+        if a == b && b == c && c == d && d == e {
             Type::FiveOfAKind
-        } else if map.values().any(|num| *num == 4) {
+        } else if (a == b && b == c && c == d) || (b == c && c == d && d == e) {
             Type::FourOfAKind
-        } else if map.values().any(|num| *num == 3) && map.values().any(|num| *num == 2) {
+        } else if (a == b && b == c && d == e) || (a == b && c == d && d == e) {
             Type::FullHouse
-        } else if map.values().any(|num| *num == 3) {
+        } else if (a == b && b == c) || (b == c && c == d) || (c == d && d == e) {
             Type::ThreeOfAKind
-        } else if map.values().filter(|num| **num == 2).count() == 2 {
+        } else if (a == b && c == d) || (a == b && d == e) || (b == c && d == e) {
             Type::TwoPair
-        } else if map.values().any(|num| *num == 2) {
+        } else if a == b || b == c || c == d || d == e {
             Type::OnePair
         } else {
             Type::HighCard
         }
+    }
+
+    pub fn get_type_with_jokers(&self) -> Type {
+        let jokers = self.cards.iter().filter(|c| **c == Card::J).count();
+
+        match self.get_type() {
+            Type::FourOfAKind if jokers == 4 => Type::FiveOfAKind,
+            Type::FourOfAKind if jokers == 1 => Type::FiveOfAKind,
+            Type::FullHouse if jokers == 3 => Type::FiveOfAKind,
+            Type::FullHouse if jokers == 2 => Type::FiveOfAKind,
+            Type::ThreeOfAKind if jokers == 3 => Type::FourOfAKind,
+            Type::ThreeOfAKind if jokers == 1 => Type::FourOfAKind,
+            Type::TwoPair if jokers == 2 => Type::FourOfAKind,
+            Type::TwoPair if jokers == 1 => Type::FullHouse,
+            Type::OnePair if jokers == 2 => Type::ThreeOfAKind,
+            Type::OnePair if jokers == 1 => Type::ThreeOfAKind,
+            Type::HighCard if jokers == 1 => Type::OnePair,
+            t => t,
+        }
+    }
+
+    pub fn cmp(&self, other: &Self) -> Ordering {
+        match self.get_type().cmp(&other.get_type()) {
+            Ordering::Equal => self.cards.cmp(&other.cards),
+            ordering => ordering,
+        }
+    }
+
+    pub fn jcmp(&self, other: &Hand) -> Ordering {
+        match self
+            .get_type_with_jokers()
+            .cmp(&other.get_type_with_jokers())
+        {
+            Ordering::Equal => jcmp_hand(&self.cards, &other.cards),
+            ordering => ordering,
+        }
+    }
+}
+
+fn jcmp_hand(a: &[Card; 5], b: &[Card; 5]) -> Ordering {
+    match jcmp(a[0], b[0]) {
+        Ordering::Equal => match jcmp(a[1], b[1]) {
+            Ordering::Equal => match jcmp(a[2], b[2]) {
+                Ordering::Equal => match jcmp(a[3], b[3]) {
+                    Ordering::Equal => jcmp(a[4], b[4]),
+                    o => o,
+                },
+                o => o,
+            },
+            o => o,
+        },
+        o => o,
+    }
+}
+
+fn jcmp(a: Card, b: Card) -> Ordering {
+    match (a, b) {
+        (Card::J, Card::J) => Ordering::Equal,
+        (Card::J, _) => Ordering::Less,
+        (_, Card::J) => Ordering::Greater,
+        (a, b) => a.cmp(&b),
     }
 }
 
@@ -46,28 +98,77 @@ impl From<[Card; 5]> for Hand {
     }
 }
 
-impl Ord for Hand {
-    fn cmp(&self, other: &Self) -> Ordering {
-        match self.get_type().cmp(&other.get_type()) {
-            Ordering::Equal => self.cards.cmp(&other.cards),
-            ordering => ordering,
-        }
-    }
-}
-
-impl PartialOrd for Hand {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
 #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
-enum Type {
-    FiveOfAKind,
-    FourOfAKind,
-    FullHouse,
-    ThreeOfAKind,
-    TwoPair,
-    OnePair,
+pub enum Type {
     HighCard,
+    OnePair,
+    TwoPair,
+    ThreeOfAKind,
+    FullHouse,
+    FourOfAKind,
+    FiveOfAKind,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn get_type_with_jokers() {
+        // Four of a kind
+        assert_eq!(
+            Hand::from([Card::A, Card::A, Card::A, Card::A, Card::J]).get_type_with_jokers(),
+            Type::FiveOfAKind
+        );
+        assert_eq!(
+            Hand::from([Card::A, Card::J, Card::J, Card::J, Card::J]).get_type_with_jokers(),
+            Type::FiveOfAKind
+        );
+
+        // Full house
+        assert_eq!(
+            Hand::from([Card::A, Card::A, Card::A, Card::J, Card::J]).get_type_with_jokers(),
+            Type::FiveOfAKind
+        );
+        assert_eq!(
+            Hand::from([Card::A, Card::A, Card::J, Card::J, Card::J]).get_type_with_jokers(),
+            Type::FiveOfAKind
+        );
+
+        // Three of a kind
+        assert_eq!(
+            Hand::from([Card::A, Card::A, Card::A, Card::K, Card::J]).get_type_with_jokers(),
+            Type::FourOfAKind
+        );
+        assert_eq!(
+            Hand::from([Card::A, Card::K, Card::J, Card::J, Card::J]).get_type_with_jokers(),
+            Type::FourOfAKind
+        );
+
+        // Two pair
+        assert_eq!(
+            Hand::from([Card::A, Card::A, Card::K, Card::K, Card::J]).get_type_with_jokers(),
+            Type::FullHouse
+        );
+        assert_eq!(
+            Hand::from([Card::A, Card::A, Card::K, Card::J, Card::J]).get_type_with_jokers(),
+            Type::FourOfAKind
+        );
+
+        // One pair
+        assert_eq!(
+            Hand::from([Card::A, Card::A, Card::K, Card::Q, Card::J]).get_type_with_jokers(),
+            Type::ThreeOfAKind
+        );
+        assert_eq!(
+            Hand::from([Card::A, Card::K, Card::Q, Card::J, Card::J]).get_type_with_jokers(),
+            Type::ThreeOfAKind
+        );
+
+        // High card
+        assert_eq!(
+            Hand::from([Card::A, Card::K, Card::Q, Card::T, Card::J]).get_type_with_jokers(),
+            Type::OnePair
+        );
+    }
 }

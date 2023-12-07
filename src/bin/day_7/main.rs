@@ -2,25 +2,26 @@ mod hand;
 
 use hand::Hand;
 
+use std::cmp::Ordering;
 use std::str::FromStr;
 
 struct Solver;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialOrd, PartialEq)]
 enum Card {
-    A,
-    K,
-    Q,
-    J,
-    T,
-    C9,
-    C8,
-    C7,
-    C6,
-    C5,
-    C4,
-    C3,
     C2,
+    C3,
+    C4,
+    C5,
+    C6,
+    C7,
+    C8,
+    C9,
+    T,
+    J,
+    Q,
+    K,
+    A,
 }
 
 impl From<char> for Card {
@@ -53,26 +54,32 @@ struct Game {
 impl aoc::Solver for Solver {
     type Input = Vec<Game>;
     type Output1 = u64;
-    type Output2 = u32;
+    type Output2 = u64;
 
     fn parse(input: &str) -> Self::Input {
         input.lines().map(|line| parse_line(line)).collect()
     }
 
     fn part_1(input: &Self::Input) -> Self::Output1 {
-        let mut input = input.clone();
-        input.sort_unstable_by_key(|game| game.hand);
-        input
-            .iter()
-            .rev()
-            .enumerate()
-            .map(|(i, game)| (i as u64 + 1) * game.bid)
-            .sum()
+        get_total_winnings(input, |a: &Game, b: &Game| a.hand.cmp(&b.hand))
     }
 
-    fn part_2(_input: &Self::Input) -> Self::Output2 {
-        todo!()
+    fn part_2(input: &Self::Input) -> Self::Output2 {
+        get_total_winnings(input, |a: &Game, b: &Game| a.hand.jcmp(&b.hand))
     }
+}
+
+fn get_total_winnings<F: Fn(&Game, &Game) -> Ordering>(
+    input: &<Solver as aoc::Solver>::Input,
+    comparison: F,
+) -> u64 {
+    let mut input = input.clone();
+    input.sort_unstable_by(comparison);
+    input
+        .iter()
+        .enumerate()
+        .map(|(i, game)| (i as u64 + 1) * game.bid)
+        .sum()
 }
 
 fn parse_line(line: &str) -> Game {
@@ -140,6 +147,6 @@ QQQJA 483";
 
     #[test]
     fn part_2() {
-        assert_eq!(<Solver as aoc::Solver>::part_2(&get_input()), todo!());
+        assert_eq!(<Solver as aoc::Solver>::part_2(&get_input()), 5905);
     }
 }
