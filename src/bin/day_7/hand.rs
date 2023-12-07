@@ -67,19 +67,14 @@ impl Hand {
     }
 }
 
-fn jcmp_hand(a: &[Card; 5], b: &[Card; 5]) -> Ordering {
-    match jcmp(a[0], b[0]) {
-        Ordering::Equal => match jcmp(a[1], b[1]) {
-            Ordering::Equal => match jcmp(a[2], b[2]) {
-                Ordering::Equal => match jcmp(a[3], b[3]) {
-                    Ordering::Equal => jcmp(a[4], b[4]),
-                    o => o,
-                },
-                o => o,
-            },
-            o => o,
+fn jcmp_hand(a: &[Card], b: &[Card]) -> Ordering {
+    match (a, b) {
+        ([a], [b]) => jcmp(*a, *b),
+        ([a, a_rest @ ..], [b, b_rest @ ..]) => match jcmp(*a, *b) {
+            Ordering::Equal => jcmp_hand(a_rest, b_rest),
+            ordering => ordering,
         },
-        o => o,
+        _ => panic!(),
     }
 }
 
