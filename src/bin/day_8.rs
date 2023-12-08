@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 struct Solver;
 
@@ -24,18 +23,14 @@ struct Node {
     name: String,
     left: String,
     right: String,
-    is_start: bool,
-    is_end: bool,
 }
 
 impl Node {
-    pub fn get_dest(&self, nodes: &HashMap<String, Node>, dirs: &[Dir]) -> (String, String) {
-        let dst = dirs.iter().fold(self.name.clone(), |name, dir| match dir {
+    pub fn get_dest(&self, nodes: &HashMap<String, Node>, dirs: &[Dir]) -> String {
+        dirs.iter().fold(self.name.clone(), |name, dir| match dir {
             Dir::Left => nodes.get(&name).unwrap().left.clone(),
             Dir::Right => nodes.get(&name).unwrap().right.clone(),
-        });
-
-        (self.name.clone(), dst)
+        })
     }
 }
 
@@ -51,16 +46,7 @@ impl From<&str> for Node {
         let mut iter = iter.skip(2);
         let right = string_from_iter(&mut iter);
 
-        let is_start = name.chars().last().unwrap() == 'A';
-        let is_end = name.chars().last().unwrap() == 'Z';
-
-        Self {
-            name,
-            left,
-            right,
-            is_start,
-            is_end,
-        }
+        Self { name, left, right }
     }
 }
 
@@ -98,111 +84,39 @@ impl aoc::Solver for Solver {
     fn part_1(input: &Self::Input) -> Self::Output1 {
         let (dirs, nodes) = input;
 
-        let mut num_steps = 0;
-        let mut dir_iter = dirs.iter().cycle();
-
-        let mut cur_node_name = "AAA";
-
-        loop {
-            let cur_node = nodes.get(cur_node_name).unwrap();
-
-            match dir_iter.next().unwrap() {
-                Dir::Left => cur_node_name = &cur_node.left,
-                Dir::Right => cur_node_name = &cur_node.right,
-            }
-
-            num_steps += 1;
-
-            if cur_node_name == "ZZZ" {
-                break;
-            }
-        }
-
-        num_steps
+        let start_nodes = nodes.keys().filter(|node| node.as_str() == "AAA");
+        get_num_steps(dirs, nodes, start_nodes)
     }
 
     fn part_2(input: &Self::Input) -> Self::Output2 {
-        let (dirs, nodes): &(_, HashMap<String, Node>) = input;
+        let (dirs, nodes) = input;
 
-        let map: HashMap<String, String> = nodes
-            .values()
-            .map(|node| node.get_dest(&nodes, &dirs))
-            .collect();
-
-        let cur_nodes: Vec<&String> = nodes
+        let start_nodes = nodes
             .keys()
-            .filter(|name| nodes.get(*name).unwrap().is_start)
-            .collect();
-
-        let mut ccycles = HashMap::new();
-
-        for node in cur_nodes.iter() {
-            let mut cycles = Vec::<String>::new();
-
-            let mut current = *node;
-
-            while !cycles.contains(current) {
-                cycles.push(current.to_string());
-                current = map.get(current).unwrap();
-            }
-
-            cycles.push(current.to_string());
-
-            let _ = cycles.remove(0);
-            let _ = cycles.pop();
-
-            ccycles.insert(node.to_string(), cycles);
-        }
-
-        let mut aaa = HashMap::new();
-
-        for last_node in cur_nodes.iter() {
-            let node = last_node;
-            let mut num = 0;
-            let mut last_node = last_node.to_string();
-
-            for _ in 0..ccycles.get(&last_node).unwrap().len() {
-                last_node = dirs.iter().fold(last_node.to_string(), |node, dir| {
-                    num += 1;
-                    match dir {
-                        Dir::Left => nodes.get(&node).unwrap().left.to_string(),
-                        Dir::Right => nodes.get(&node).unwrap().right.to_string(),
-                    }
-                });
-            }
-            aaa.insert(node, num);
-        }
-
-        let mut qqq = HashSet::new();
-
-        for num in aaa.values() {
-            let factors = get_prime_factors(*num);
-            for f in factors.keys() {
-                qqq.insert(*f);
-            }
-        }
-
-        let product: usize = qqq.iter().product();
-        product
+            .filter(|node| node.chars().last().unwrap() == 'A');
+        get_num_steps(dirs, nodes, start_nodes)
     }
 }
 
-fn get_prime_factors(mut num: usize) -> HashMap<usize, usize> {
-    let mut result = HashMap::new();
+fn get_num_steps<'a>(
+    dirs: &[Dir],
+    nodes: &'a HashMap<String, Node>,
+    start_nodes: impl Iterator<Item = &'a String>,
+) -> usize {
+    dirs.len()
+        * start_nodes
+            .map(|name| {
+                let mut current = name.to_string();
+                let mut cycles = HashSet::new();
 
-    let mut div = 2;
+                while !cycles.contains(&current) {
+                    cycles.insert(current.clone());
+                    current = nodes.get(&current).unwrap().get_dest(&nodes, &dirs);
+                }
 
-    while div < num {
-        if num % div == 0 {
-            *result.entry(div).or_insert(0) += 1;
-            num /= div;
-        } else {
-            div += 1;
-        }
-    }
-    *result.entry(div).or_insert(0) += 1;
-
-    result
+                cycles.len() - 1
+            })
+            .product::<usize>()
 }
 
 fn main() {
@@ -221,22 +135,16 @@ mod tests {
                     name: "AAA".to_string(),
                     left: "BBB".to_string(),
                     right: "BBB".to_string(),
-                    is_start: true,
-                    is_end: false,
                 },
                 Node {
                     name: "BBB".to_string(),
                     left: "AAA".to_string(),
                     right: "ZZZ".to_string(),
-                    is_start: false,
-                    is_end: false,
                 },
                 Node {
                     name: "ZZZ".to_string(),
                     left: "ZZZ".to_string(),
                     right: "ZZZ".to_string(),
-                    is_start: false,
-                    is_end: true,
                 },
             ]
             .into_iter()
@@ -269,57 +177,41 @@ ZZZ = (ZZZ, ZZZ)";
                     name: "11A".to_string(),
                     left: "11B".to_string(),
                     right: "XXX".to_string(),
-                    is_start: true,
-                    is_end: false,
                 },
                 Node {
                     name: "11B".to_string(),
                     left: "XXX".to_string(),
                     right: "11Z".to_string(),
-                    is_start: false,
-                    is_end: false,
                 },
                 Node {
                     name: "11Z".to_string(),
                     left: "11B".to_string(),
                     right: "XXX".to_string(),
-                    is_start: false,
-                    is_end: true,
                 },
                 Node {
                     name: "22A".to_string(),
                     left: "22B".to_string(),
                     right: "XXX".to_string(),
-                    is_start: true,
-                    is_end: false,
                 },
                 Node {
                     name: "22B".to_string(),
                     left: "22C".to_string(),
                     right: "22C".to_string(),
-                    is_start: false,
-                    is_end: false,
                 },
                 Node {
                     name: "22C".to_string(),
                     left: "22Z".to_string(),
                     right: "22Z".to_string(),
-                    is_start: false,
-                    is_end: false,
                 },
                 Node {
                     name: "22Z".to_string(),
                     left: "22B".to_string(),
                     right: "22B".to_string(),
-                    is_start: false,
-                    is_end: true,
                 },
                 Node {
                     name: "XXX".to_string(),
                     left: "XXX".to_string(),
                     right: "XXX".to_string(),
-                    is_start: false,
-                    is_end: false,
                 },
             ]
             .into_iter()
