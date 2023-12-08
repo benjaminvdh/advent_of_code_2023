@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::HashMap;
 
 struct Solver;
 
@@ -23,6 +23,13 @@ struct Node {
     name: String,
     left: String,
     right: String,
+}
+
+impl Node {
+    pub fn to_map_item(self) -> (String, Dest) {
+        let Node { name, left, right } = self;
+        (name, Dest { left, right })
+    }
 }
 
 impl From<&str> for Node {
@@ -52,8 +59,14 @@ fn string_from_iter(iter: &mut impl Iterator<Item = char>) -> String {
     )
 }
 
+#[derive(Debug, PartialEq)]
+struct Dest {
+    left: String,
+    right: String,
+}
+
 impl aoc::Solver for Solver {
-    type Input = (Vec<Dir>, HashSet<Node>);
+    type Input = (Vec<Dir>, HashMap<String, Dest>);
     type Output1 = usize;
     type Output2 = u32;
 
@@ -61,13 +74,38 @@ impl aoc::Solver for Solver {
         let (dirs, nodes) = input.split_once("\n\n").unwrap();
 
         let dirs = dirs.chars().map(|c| c.into()).collect();
-        let nodes = nodes.lines().map(|line| line.into()).collect();
+        let nodes = nodes
+            .lines()
+            .map(|line| Node::from(line).to_map_item())
+            .collect();
 
         (dirs, nodes)
     }
 
-    fn part_1(_input: &Self::Input) -> Self::Output1 {
-        todo!()
+    fn part_1(input: &Self::Input) -> Self::Output1 {
+        let (dirs, nodes) = input;
+
+        let mut num_steps = 0;
+        let mut dir_iter = dirs.iter().cycle();
+
+        let mut cur_node_name = "AAA";
+
+        loop {
+            let cur_node = nodes.get(cur_node_name).unwrap();
+
+            match dir_iter.next().unwrap() {
+                Dir::Left => cur_node_name = &cur_node.left,
+                Dir::Right => cur_node_name = &cur_node.right,
+            }
+
+            num_steps += 1;
+
+            if cur_node_name == "ZZZ" {
+                break;
+            }
+        }
+
+        num_steps
     }
 
     fn part_2(_input: &Self::Input) -> Self::Output2 {
@@ -104,6 +142,7 @@ mod tests {
                 },
             ]
             .into_iter()
+            .map(|node| node.to_map_item())
             .collect(),
         )
     }
