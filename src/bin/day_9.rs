@@ -3,6 +3,33 @@ use std::str::FromStr;
 #[derive(Debug, PartialEq)]
 pub struct Sequence(Vec<i64>);
 
+impl Sequence {
+    pub fn extend(&self) -> Self {
+        if self.0.iter().all(|val| *val == 0) {
+            let mut sequence = self.0.clone();
+            sequence.push(0);
+            Self(sequence)
+        } else {
+            let child = Self(self.get_differences());
+            let extended_child = child.extend();
+            let mut sequence = self.0.clone();
+            sequence.push(*sequence.last().unwrap() + extended_child.last());
+            Self(sequence)
+        }
+    }
+
+    pub fn last(&self) -> i64 {
+        *self.0.last().unwrap()
+    }
+
+    fn get_differences(&self) -> Vec<i64> {
+        self.0
+            .windows(2)
+            .map(|window| window[1] - window[0])
+            .collect()
+    }
+}
+
 impl From<&str> for Sequence {
     fn from(line: &str) -> Self {
         Self(
@@ -24,8 +51,12 @@ impl aoc::Solver for Solver {
         input.lines().map(|line| Sequence::from(line)).collect()
     }
 
-    fn part_1(_input: &Self::Input) -> Self::Output1 {
-        todo!()
+    fn part_1(input: &Self::Input) -> Self::Output1 {
+        input
+            .iter()
+            .map(|sequence| sequence.extend())
+            .map(|sequence| sequence.last())
+            .sum()
     }
 
     fn part_2(_input: &Self::Input) -> Self::Output2 {
@@ -60,7 +91,7 @@ mod tests {
 
     #[test]
     fn part_1() {
-        assert_eq!(<Solver as aoc::Solver>::part_1(&get_input()), todo!());
+        assert_eq!(<Solver as aoc::Solver>::part_1(&get_input()), 114);
     }
 
     #[test]
