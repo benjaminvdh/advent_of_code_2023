@@ -78,11 +78,15 @@ pub fn run<S: Solver>() {
     let file_contents = fs::read_to_string(&args.path).unwrap();
     let input = S::parse(&file_contents);
 
-    let part_1 = S::part_1(&input);
-    print_result(part_1, 1, &args);
+    if args.run_part_1 {
+        let part_1 = S::part_1(&input);
+        print_result(part_1, 1, &args);
+    }
 
-    let part_2 = S::part_2(&input);
-    print_result(part_2, 2, &args);
+    if args.run_part_2 {
+        let part_2 = S::part_2(&input);
+        print_result(part_2, 2, &args);
+    }
 }
 
 fn print_result<D: Display>(result: D, part: u8, args: &Args) {
