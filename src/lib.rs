@@ -57,6 +57,7 @@
 
 use std::fmt::Display;
 use std::fs;
+use std::time::{Duration, Instant};
 
 mod args;
 
@@ -79,22 +80,37 @@ pub fn run<S: Solver>() {
     let input = S::parse(&file_contents);
 
     if args.run_part_1 {
+        let start = Instant::now();
         let part_1 = S::part_1(&input);
-        print_result(part_1, 1, &args);
+        print_result(part_1, 1, &args, start.elapsed());
     }
 
     if args.run_part_2 {
+        let start = Instant::now();
         let part_2 = S::part_2(&input);
-        print_result(part_2, 2, &args);
+        print_result(part_2, 2, &args, start.elapsed());
     }
 }
 
-fn print_result<D: Display>(result: D, part: u8, args: &Args) {
+fn print_result<D: Display>(result: D, part: u8, args: &Args, elapsed: Duration) {
     if args.quiet {
         print!("{result}\0");
     } else {
-        println!("Result of part {part}:");
+        println!(
+            "Result of part {part} (solved in {}):",
+            duration_to_string(elapsed)
+        );
         println!("{result}");
         println!();
     }
+}
+
+fn duration_to_string(duration: Duration) -> String {
+    format!(
+        "{}.{:0>3} {:0>3} {:0>3} s",
+        duration.as_secs(),
+        duration.as_millis(),
+        duration.as_micros() % 1_000,
+        duration.as_nanos() % 1_000,
+    )
 }
