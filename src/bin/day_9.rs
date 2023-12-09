@@ -19,8 +19,26 @@ impl Sequence {
         }
     }
 
+    pub fn pre_extend(&self) -> Self {
+        if self.is_zero() {
+            let mut sequence = self.0.clone();
+            sequence.insert(0, 0);
+            Self(sequence)
+        } else {
+            let child = Self(self.get_differences());
+            let extended_child = child.pre_extend();
+            let mut sequence = self.0.clone();
+            sequence.insert(0, *sequence.first().unwrap() - extended_child.first());
+            Self(sequence)
+        }
+    }
+
     pub fn last(&self) -> i64 {
         *self.0.last().unwrap()
+    }
+
+    pub fn first(&self) -> i64 {
+        *self.0.first().unwrap()
     }
 
     fn get_differences(&self) -> Vec<i64> {
@@ -98,8 +116,12 @@ impl aoc::Solver for Solver {
             .sum()
     }
 
-    fn part_2(_input: &Self::Input) -> Self::Output2 {
-        todo!()
+    fn part_2(input: &Self::Input) -> Self::Output2 {
+        input
+            .iter()
+            .map(|sequence| sequence.pre_extend())
+            .map(|sequence| sequence.first())
+            .sum()
     }
 }
 
@@ -135,6 +157,6 @@ mod tests {
 
     #[test]
     fn part_2() {
-        assert_eq!(<Solver as aoc::Solver>::part_2(&get_input()), todo!());
+        assert_eq!(<Solver as aoc::Solver>::part_2(&get_input()), 2);
     }
 }
