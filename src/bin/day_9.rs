@@ -1,3 +1,4 @@
+use std::fmt::{self, Display, Formatter};
 use std::str::FromStr;
 
 #[derive(Debug, PartialEq)]
@@ -5,7 +6,7 @@ pub struct Sequence(Vec<i64>);
 
 impl Sequence {
     pub fn extend(&self) -> Self {
-        if self.0.iter().all(|val| *val == 0) {
+        if self.is_zero() {
             let mut sequence = self.0.clone();
             sequence.push(0);
             Self(sequence)
@@ -28,6 +29,10 @@ impl Sequence {
             .map(|window| window[1] - window[0])
             .collect()
     }
+
+    fn is_zero(&self) -> bool {
+        self.0.iter().all(|val| *val == 0)
+    }
 }
 
 impl From<&str> for Sequence {
@@ -37,6 +42,40 @@ impl From<&str> for Sequence {
                 .map(|number| i64::from_str(number).unwrap())
                 .collect(),
         )
+    }
+}
+
+impl Display for Sequence {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
+        for val in self.0.iter() {
+            write!(f, "{val:8} ")?;
+        }
+
+        writeln!(f)?;
+
+        if !self.is_zero() {
+            let mut indentation = 0;
+            let mut child_sequence = Self(self.get_differences());
+
+            loop {
+                indentation += 4;
+                write!(f, "{:indentation$}", ' ')?;
+
+                for val in child_sequence.0.iter() {
+                    write!(f, "{val:8} ")?;
+                }
+
+                writeln!(f)?;
+
+                if child_sequence.is_zero() {
+                    break;
+                }
+
+                child_sequence = Self(child_sequence.get_differences());
+            }
+        }
+
+        Ok(())
     }
 }
 
