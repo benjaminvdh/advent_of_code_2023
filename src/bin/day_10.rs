@@ -26,6 +26,22 @@ impl From<char> for Dir {
     }
 }
 
+impl Dir {
+    #[allow(unused)]
+    fn get_char(&self) -> char {
+        match *self {
+            Dir::V => '│',
+            Dir::H => '─',
+            Dir::L => '└',
+            Dir::J => '┘',
+            Dir::T => '┐',
+            Dir::F => '┌',
+            Dir::G => '.',
+            Dir::S => 'S',
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Pos {
     x: u64,
@@ -145,6 +161,17 @@ impl Grid {
             Dir::S => false,
         }
     }
+
+    #[allow(unused)]
+    fn print(&self) {
+        for y in 0..self.0.len() {
+            for x in 0..self.0[y].len() {
+                let pos = Pos::from((x, y));
+                print!("{}", self.get(pos).get_char());
+            }
+            println!();
+        }
+    }
 }
 
 struct Solver;
@@ -184,7 +211,7 @@ impl aoc::Solver for Solver {
                 num_steps += 1;
 
                 if matches!(grid.get(next), Dir::S) {
-                    return num_steps / 2;
+                    return num_steps / 2 + 1;
                 }
 
                 prev = curr;
@@ -195,9 +222,174 @@ impl aoc::Solver for Solver {
         panic!()
     }
 
-    fn part_2(_input: &Self::Input) -> Self::Output2 {
-        todo!()
+    fn part_2(grid: &Self::Input) -> Self::Output2 {
+        let simplified = get_simplified_grid(grid);
+        let inflated = inflate(&simplified);
+
+        let mut map = get_reachable_map(&inflated);
+        loop {
+            if !fill_in_reachable_map(&inflated, &mut map) {
+                break;
+            }
+        }
+
+        let mut num_enclosed = 0;
+
+        for y in 0..grid.0.len() {
+            for x in 0..grid.0[y].len() {
+                if matches!(simplified.get((x, y).into()), Dir::G) && !map[y * 2][x * 2] {
+                    num_enclosed += 1;
+                }
+            }
+        }
+
+        num_enclosed
     }
+}
+
+#[allow(unused)]
+fn print_map(map: &Vec<Vec<bool>>) {
+    for row in map {
+        for val in row {
+            print!("{}", if *val { "1" } else { "0" });
+        }
+        println!();
+    }
+}
+
+fn get_simplified_grid(grid: &Grid) -> Grid {
+    let start = grid.get_start();
+
+    let next_steps = [
+        Some((start.x + 1, start.y).into()),
+        Some((start.x, start.y + 1).into()),
+        start.x.checked_sub(1).map(|x| (x, start.y).into()),
+        start.y.checked_sub(1).map(|y| (start.x, y).into()),
+    ]
+    .into_iter()
+    .filter_map(|p| p);
+
+    for step in next_steps {
+        if !grid.are_connected(start, step) {
+            continue;
+        }
+
+        let mut loop_tiles = vec![start, step];
+
+        let mut prev = start;
+        let mut curr = step;
+
+        loop {
+            let next = grid.get_next(curr, prev);
+            loop_tiles.push(next);
+
+            if matches!(grid.get(next), Dir::S) {
+                let mut simplified = Grid(vec![]);
+
+                for y in 0..grid.0.len() {
+                    simplified.0.push(vec![]);
+
+                    for x in 0..grid.0[y].len() {
+                        if loop_tiles.contains(&(x, y).into()) {
+                            simplified.0[y].push(grid.get((x, y).into()));
+                        } else {
+                            simplified.0[y].push(Dir::G);
+                        }
+                    }
+                }
+
+                return simplified;
+            }
+
+            prev = curr;
+            curr = next;
+        }
+    }
+
+    panic!()
+}
+
+fn inflate(grid: &Grid) -> Grid {
+    let mut inflated = Grid(vec![]);
+
+    for y in 0..grid.0.len() {
+        let mut new_row_1 = vec![];
+
+        for x in 0..grid.0[y].len() {
+            match grid.get((x, y).into()) {
+                d @ Dir::H | d @ Dir::L | d @ Dir::F => {
+                    new_row_1.push(d);
+                    new_row_1.push(Dir::H);
+                }
+                Dir::S => {
+                    new_row_1.push(Dir::S);
+                    new_row_1.push(Dir::S);
+                }
+                d => {
+                    new_row_1.push(d);
+                    new_row_1.push(Dir::G);
+                }
+            }
+        }
+
+        let mut new_row_2 = vec![];
+        for d in new_row_1.iter() {
+            match d {
+                Dir::F | Dir::T | Dir::V => new_row_2.push(Dir::V),
+                Dir::S => new_row_2.push(Dir::S),
+                _ => new_row_2.push(Dir::G),
+            }
+        }
+
+        inflated.0.push(new_row_1);
+        inflated.0.push(new_row_2);
+    }
+
+    inflated
+}
+
+fn get_reachable_map(grid: &Grid) -> Vec<Vec<bool>> {
+    let mut map = vec![];
+
+    for y in 0..grid.0.len() {
+        let mut row = vec![];
+
+        for x in 0..grid.0[y].len() {
+            let val = if x == 0 || y == 0 || x == grid.0[y].len() - 1 || y == grid.0.len() - 1 {
+                match grid.get((x, y).into()) {
+                    Dir::G => true,
+                    _ => false,
+                }
+            } else {
+                false
+            };
+
+            row.push(val);
+        }
+
+        map.push(row);
+    }
+
+    map
+}
+
+fn fill_in_reachable_map(grid: &Grid, map: &mut Vec<Vec<bool>>) -> bool {
+    let mut has_changed = false;
+
+    for y in 1..map.len() - 1 {
+        for x in 1..map[y].len() - 1 {
+            if !map[y][x] {
+                if matches!(grid.get((x, y).into()), Dir::G) {
+                    if map[y][x - 1] || map[y][x + 1] || map[y - 1][x] || map[y + 1][x] {
+                        map[y][x] = true;
+                        has_changed = true;
+                    }
+                }
+            }
+        }
+    }
+
+    has_changed
 }
 
 fn parse_line(line: &str) -> Vec<Dir> {
@@ -238,8 +430,23 @@ LJ...";
         assert_eq!(<Solver as aoc::Solver>::part_1(&get_input()), 8);
     }
 
+    fn get_input_2() -> <Solver as aoc::Solver>::Input {
+        <Solver as aoc::Solver>::parse(
+            r"FF7FSF7F7F7F7F7F---7
+L|LJ||||||||||||F--J
+FL-7LJLJ||||||LJL-77
+F--JF--7||LJLJ7F7FJ-
+L---JF-JLJ.||-FJLJJ7
+|F|F-JF---7F7-L7L|7|
+|FFJF7L7F-JF7|JL---7
+7-L-JL7||F7|L7F-7F7|
+L.L7LFJ|||||FJL7||LJ
+L7JLJL-JLJLJL--JLJ.L",
+        )
+    }
+
     #[test]
     fn part_2() {
-        //assert_eq!(<Solver as aoc::Solver>::part_2(&get_input()), todo!());
+        assert_eq!(<Solver as aoc::Solver>::part_2(&get_input_2()), 10);
     }
 }
