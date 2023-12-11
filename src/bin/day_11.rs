@@ -14,69 +14,71 @@ impl From<char> for DataPoint {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct Galaxy {
+    x: u64,
+    y: u64,
+}
+
 #[derive(Debug, PartialEq)]
-struct StarMap(Vec<Vec<DataPoint>>);
+struct StarMap(Vec<Vec<DataPoint>>, Vec<bool>, Vec<bool>); // (datapoints, row_empty, col_empty)
 
 impl StarMap {
-    pub fn enlarged(&self) -> StarMap {
-        let enlarged_rows = self.enlarged_rows();
-        let transposed = enlarged_rows.transposed();
-        let enlarged = transposed.enlarged_rows();
-        enlarged.transposed()
-    }
+    pub fn get_sum_of_distances(&self, scale_factor: u64) -> u64 {
+        let galaxies = self.get_galaxies();
 
-    fn enlarged_rows(&self) -> StarMap {
-        let mut new_rows = vec![];
-
-        for row in self.0.iter() {
-            if is_empty(&row) {
-                new_rows.push([DataPoint::EmptySpace].repeat(row.len()));
-                new_rows.push([DataPoint::EmptySpace].repeat(row.len()));
-            } else {
-                new_rows.push(row.clone());
-            }
-        }
-
-        Self(new_rows)
-    }
-
-    fn transposed(&self) -> StarMap {
-        let mut new_rows = vec![];
-
-        for x in 0..self.0[0].len() {
-            let mut new_row = vec![];
-
-            for y in 0..self.0.len() {
-                new_row.push(self.0[y][x]);
-            }
-
-            new_rows.push(new_row);
-        }
-
-        Self(new_rows)
-    }
-
-    pub fn get_sum_of_distances(&self) -> usize {
-        let galaxy_locations = self.get_galaxy_locations();
-
-        galaxy_locations
+        let galaxy_pairs: Vec<_> = galaxies
             .iter()
-            .map(|a| {
-                galaxy_locations
-                    .iter()
-                    .map(|b| a.0.abs_diff(b.0) + a.1.abs_diff(b.1))
-                    .sum::<usize>()
-            })
-            .sum::<usize>()
+            .flat_map(|a| galaxies.iter().map(move |b| (*a, *b)))
+            .collect();
+
+        galaxy_pairs
+            .iter()
+            .map(|(a, b)| self.get_distance(a, b, scale_factor))
+            .sum::<u64>()
             / 2
     }
 
-    fn get_galaxy_locations(&self) -> Vec<(usize, usize)> {
+    fn get_distance(&self, a: &Galaxy, b: &Galaxy, scale_factor: u64) -> u64 {
+        self.get_horizontal_distance(a, b, scale_factor)
+            + self.get_vertical_distance(a, b, scale_factor)
+    }
+
+    fn get_horizontal_distance(&self, a: &Galaxy, b: &Galaxy, scale_factor: u64) -> u64 {
+        let x_min = a.x.min(b.x);
+        let x_max = a.x.max(b.x);
+
+        (x_min..x_max).fold(0, |acc, x| {
+            acc + if self.is_column_empty(x as usize) {
+                scale_factor
+            } else {
+                1
+            }
+        })
+    }
+
+    fn get_vertical_distance(&self, a: &Galaxy, b: &Galaxy, scale_factor: u64) -> u64 {
+        let y_min = a.y.min(b.y);
+        let y_max = a.y.max(b.y);
+
+        (y_min..y_max).fold(0, |acc, y| {
+            acc + if self.is_row_empty(y as usize) {
+                scale_factor
+            } else {
+                1
+            }
+        })
+    }
+
+    fn get_galaxies(&self) -> Vec<Galaxy> {
         (0..self.0.len())
             .flat_map(|y| {
                 (0..self.0[y].len()).filter_map(move |x| {
                     if matches!(self.0[y][x], DataPoint::Galaxy) {
-                        Some((x, y))
+                        Some(Galaxy {
+                            x: x as u64,
+                            y: y as u64,
+                        })
                     } else {
                         None
                     }
@@ -84,21 +86,40 @@ impl StarMap {
             })
             .collect()
     }
-}
 
-fn is_empty(row: &[DataPoint]) -> bool {
-    row.iter()
-        .all(|data_point| matches!(data_point, DataPoint::EmptySpace))
+    fn is_row_empty(&self, row: usize) -> bool {
+        self.1[row]
+    }
+
+    fn is_column_empty(&self, col: usize) -> bool {
+        self.2[col]
+    }
 }
 
 impl From<&str> for StarMap {
     fn from(input: &str) -> Self {
-        Self(
-            input
-                .lines()
-                .map(|line| line.chars().map(|c| c.into()).collect())
-                .collect(),
-        )
+        let star_map: Vec<Vec<DataPoint>> = input
+            .lines()
+            .map(|line| line.chars().map(|c| c.into()).collect())
+            .collect();
+
+        let rows_empty = star_map
+            .iter()
+            .map(|row| {
+                row.iter()
+                    .all(|data_point| matches!(data_point, DataPoint::EmptySpace))
+            })
+            .collect();
+
+        let cols_empty = (0..star_map[0].len())
+            .map(|col| {
+                star_map
+                    .iter()
+                    .all(|row| matches!(row[col], DataPoint::EmptySpace))
+            })
+            .collect();
+
+        Self(star_map, rows_empty, cols_empty)
     }
 }
 
@@ -106,19 +127,19 @@ struct Solver;
 
 impl aoc::Solver for Solver {
     type Input = StarMap;
-    type Output1 = usize;
-    type Output2 = usize;
+    type Output1 = u64;
+    type Output2 = u64;
 
     fn parse(input: &str) -> Self::Input {
         input.into()
     }
 
     fn part_1(input: &Self::Input) -> Self::Output1 {
-        input.enlarged().get_sum_of_distances()
+        input.get_sum_of_distances(2)
     }
 
-    fn part_2(_input: &Self::Input) -> Self::Output2 {
-        todo!()
+    fn part_2(input: &Self::Input) -> Self::Output2 {
+        input.get_sum_of_distances(1_000_000)
     }
 }
 
@@ -131,128 +152,136 @@ mod tests {
     use super::*;
 
     fn get_input() -> <Solver as aoc::Solver>::Input {
-        StarMap(vec![
+        StarMap(
             vec![
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::Galaxy,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
+                vec![
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::Galaxy,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                ],
+                vec![
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::Galaxy,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                ],
+                vec![
+                    DataPoint::Galaxy,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                ],
+                vec![
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                ],
+                vec![
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::Galaxy,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                ],
+                vec![
+                    DataPoint::EmptySpace,
+                    DataPoint::Galaxy,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                ],
+                vec![
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::Galaxy,
+                ],
+                vec![
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                ],
+                vec![
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::Galaxy,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                ],
+                vec![
+                    DataPoint::Galaxy,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::Galaxy,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                    DataPoint::EmptySpace,
+                ],
             ],
             vec![
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::Galaxy,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
+                false, false, false, true, false, false, false, true, false, false,
             ],
             vec![
-                DataPoint::Galaxy,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
+                false, false, true, false, false, true, false, false, true, false,
             ],
-            vec![
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-            ],
-            vec![
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::Galaxy,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-            ],
-            vec![
-                DataPoint::EmptySpace,
-                DataPoint::Galaxy,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-            ],
-            vec![
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::Galaxy,
-            ],
-            vec![
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-            ],
-            vec![
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::Galaxy,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-            ],
-            vec![
-                DataPoint::Galaxy,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::Galaxy,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-                DataPoint::EmptySpace,
-            ],
-        ])
+        )
     }
 
     #[test]
@@ -278,6 +307,7 @@ mod tests {
 
     #[test]
     fn part_2() {
-        assert_eq!(<Solver as aoc::Solver>::part_2(&get_input()), todo!());
+        assert_eq!(get_input().get_sum_of_distances(10), 1030);
+        assert_eq!(get_input().get_sum_of_distances(100), 8410);
     }
 }
