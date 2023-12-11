@@ -1,125 +1,93 @@
 #[derive(Clone, Copy, Debug, PartialEq)]
-enum DataPoint {
-    EmptySpace,
-    Galaxy,
-}
-
-impl From<char> for DataPoint {
-    fn from(c: char) -> Self {
-        match c {
-            '.' => Self::EmptySpace,
-            '#' => Self::Galaxy,
-            _ => panic!(),
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
 struct Galaxy {
     x: u64,
     y: u64,
 }
 
-#[derive(Debug, PartialEq)]
-struct StarMap(Vec<Vec<DataPoint>>, Vec<bool>, Vec<bool>); // (datapoints, row_empty, col_empty)
+impl Galaxy {
+    pub fn distance_to(&self, other: &Self) -> u64 {
+        self.x.abs_diff(other.x) + self.y.abs_diff(other.y)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct StarMap(Vec<Galaxy>);
 
 impl StarMap {
-    pub fn get_sum_of_distances(&self, scale_factor: u64) -> u64 {
-        let galaxies = self.get_galaxies();
-
-        let galaxy_pairs: Vec<_> = galaxies
+    pub fn get_sum_of_distances(&self) -> u64 {
+        self.0
             .iter()
-            .flat_map(|a| galaxies.iter().map(move |b| (*a, *b)))
-            .collect();
-
-        galaxy_pairs
-            .iter()
-            .map(|(a, b)| self.get_distance(a, b, scale_factor))
-            .sum::<u64>()
-            / 2
-    }
-
-    fn get_distance(&self, a: &Galaxy, b: &Galaxy, scale_factor: u64) -> u64 {
-        self.get_horizontal_distance(a, b, scale_factor)
-            + self.get_vertical_distance(a, b, scale_factor)
-    }
-
-    fn get_horizontal_distance(&self, a: &Galaxy, b: &Galaxy, scale_factor: u64) -> u64 {
-        let x_min = a.x.min(b.x);
-        let x_max = a.x.max(b.x);
-
-        (x_min..x_max).fold(0, |acc, x| {
-            acc + if self.is_column_empty(x as usize) {
-                scale_factor
-            } else {
-                1
-            }
-        })
-    }
-
-    fn get_vertical_distance(&self, a: &Galaxy, b: &Galaxy, scale_factor: u64) -> u64 {
-        let y_min = a.y.min(b.y);
-        let y_max = a.y.max(b.y);
-
-        (y_min..y_max).fold(0, |acc, y| {
-            acc + if self.is_row_empty(y as usize) {
-                scale_factor
-            } else {
-                1
-            }
-        })
-    }
-
-    fn get_galaxies(&self) -> Vec<Galaxy> {
-        (0..self.0.len())
-            .flat_map(|y| {
-                (0..self.0[y].len()).filter_map(move |x| {
-                    if matches!(self.0[y][x], DataPoint::Galaxy) {
-                        Some(Galaxy {
-                            x: x as u64,
-                            y: y as u64,
-                        })
-                    } else {
-                        None
-                    }
-                })
+            .enumerate()
+            .map(|(i, a)| {
+                self.0
+                    .iter()
+                    .skip(i + 1)
+                    .map(|b| a.distance_to(b))
+                    .sum::<u64>()
             })
-            .collect()
+            .sum()
     }
 
-    fn is_row_empty(&self, row: usize) -> bool {
-        self.1[row]
-    }
+    pub fn enlarged(&self, scale_factor: u64) -> Self {
+        let max_x = self.0.iter().map(|gal| gal.x).max().unwrap();
+        let max_y = self.0.iter().map(|gal| gal.y).max().unwrap();
 
-    fn is_column_empty(&self, col: usize) -> bool {
-        self.2[col]
+        let mut scaled_col_index = 0;
+        let mut scaled_cols = Vec::with_capacity(max_x as usize + 1);
+
+        for x in 0..=max_x {
+            scaled_cols.push(scaled_col_index);
+            scaled_col_index += if self.0.iter().any(|gal| gal.x == x) {
+                1
+            } else {
+                scale_factor
+            };
+        }
+
+        let mut scaled_row_index = 0;
+        let mut scaled_rows = Vec::with_capacity(max_y as usize + 1);
+
+        for y in 0..=max_y {
+            scaled_rows.push(scaled_row_index);
+            scaled_row_index += if self.0.iter().any(|gal| gal.y == y) {
+                1
+            } else {
+                scale_factor
+            };
+        }
+
+        Self(
+            self.0
+                .iter()
+                .map(|gal| Galaxy {
+                    x: scaled_cols[gal.x as usize],
+                    y: scaled_rows[gal.y as usize],
+                })
+                .collect(),
+        )
     }
 }
 
 impl From<&str> for StarMap {
     fn from(input: &str) -> Self {
-        let star_map: Vec<Vec<DataPoint>> = input
-            .lines()
-            .map(|line| line.chars().map(|c| c.into()).collect())
-            .collect();
-
-        let rows_empty = star_map
-            .iter()
-            .map(|row| {
-                row.iter()
-                    .all(|data_point| matches!(data_point, DataPoint::EmptySpace))
-            })
-            .collect();
-
-        let cols_empty = (0..star_map[0].len())
-            .map(|col| {
-                star_map
-                    .iter()
-                    .all(|row| matches!(row[col], DataPoint::EmptySpace))
-            })
-            .collect();
-
-        Self(star_map, rows_empty, cols_empty)
+        Self(
+            input
+                .lines()
+                .enumerate()
+                .flat_map(|(y, line)| {
+                    line.char_indices().filter_map(move |(x, c)| {
+                        if c == '#' {
+                            Some(Galaxy {
+                                x: x as u64,
+                                y: y as u64,
+                            })
+                        } else {
+                            None
+                        }
+                    })
+                })
+                .collect(),
+        )
     }
 }
 
@@ -135,11 +103,11 @@ impl aoc::Solver for Solver {
     }
 
     fn part_1(input: &Self::Input) -> Self::Output1 {
-        input.get_sum_of_distances(2)
+        input.enlarged(2).get_sum_of_distances()
     }
 
     fn part_2(input: &Self::Input) -> Self::Output2 {
-        input.get_sum_of_distances(1_000_000)
+        input.enlarged(1_000_000).get_sum_of_distances()
     }
 }
 
@@ -152,136 +120,17 @@ mod tests {
     use super::*;
 
     fn get_input() -> <Solver as aoc::Solver>::Input {
-        StarMap(
-            vec![
-                vec![
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::Galaxy,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                ],
-                vec![
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::Galaxy,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                ],
-                vec![
-                    DataPoint::Galaxy,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                ],
-                vec![
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                ],
-                vec![
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::Galaxy,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                ],
-                vec![
-                    DataPoint::EmptySpace,
-                    DataPoint::Galaxy,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                ],
-                vec![
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::Galaxy,
-                ],
-                vec![
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                ],
-                vec![
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::Galaxy,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                ],
-                vec![
-                    DataPoint::Galaxy,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::Galaxy,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                    DataPoint::EmptySpace,
-                ],
-            ],
-            vec![
-                false, false, false, true, false, false, false, true, false, false,
-            ],
-            vec![
-                false, false, true, false, false, true, false, false, true, false,
-            ],
-        )
+        StarMap(vec![
+            Galaxy { x: 3, y: 0 },
+            Galaxy { x: 7, y: 1 },
+            Galaxy { x: 0, y: 2 },
+            Galaxy { x: 6, y: 4 },
+            Galaxy { x: 1, y: 5 },
+            Galaxy { x: 9, y: 6 },
+            Galaxy { x: 7, y: 8 },
+            Galaxy { x: 0, y: 9 },
+            Galaxy { x: 4, y: 9 },
+        ])
     }
 
     #[test]
@@ -307,7 +156,7 @@ mod tests {
 
     #[test]
     fn part_2() {
-        assert_eq!(get_input().get_sum_of_distances(10), 1030);
-        assert_eq!(get_input().get_sum_of_distances(100), 8410);
+        assert_eq!(get_input().enlarged(10).get_sum_of_distances(), 1030);
+        assert_eq!(get_input().enlarged(100).get_sum_of_distances(), 8410);
     }
 }
