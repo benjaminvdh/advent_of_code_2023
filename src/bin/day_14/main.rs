@@ -11,23 +11,14 @@ enum Rock {
     Cubic,
 }
 
-impl Default for Rock {
-    fn default() -> Self {
-        Rock::Empty
-    }
-}
-
 impl Display for Rock {
     fn fmt(&self, fmt: &mut Formatter) -> Result<(), fmt::Error> {
-        write!(
-            fmt,
-            "{}",
-            match *self {
-                Rock::Empty => '.',
-                Rock::Rounded => 'O',
-                Rock::Cubic => '#',
-            }
-        )
+        let c = match *self {
+            Rock::Empty => '.',
+            Rock::Rounded => 'O',
+            Rock::Cubic => '#',
+        };
+        write!(fmt, "{c}",)
     }
 }
 
@@ -44,6 +35,104 @@ impl From<char> for Rock {
 
 struct Solver;
 
+type RockGrid = Grid<Rock>;
+
+fn tilt_north(grid: &mut RockGrid) {
+    for x in 0..grid.width() {
+        for y in 0..grid.height() {
+            if matches!(*grid.get(x, y), Rock::Rounded) {
+                let mut curr_y = y;
+
+                loop {
+                    if curr_y == 0 {
+                        break;
+                    }
+
+                    if !matches!(*grid.get(x, curr_y - 1), Rock::Empty) {
+                        break;
+                    }
+
+                    *grid.get_mut(x, curr_y) = Rock::Empty;
+                    *grid.get_mut(x, curr_y - 1) = Rock::Rounded;
+                    curr_y -= 1;
+                }
+            }
+        }
+    }
+}
+
+fn tilt_east(grid: &mut RockGrid) {
+    for y in 0..grid.height() {
+        for x in (0..grid.width()).rev() {
+            if matches!(*grid.get(x, y), Rock::Rounded) {
+                let mut curr_x = x;
+
+                loop {
+                    if curr_x == grid.width() - 1 {
+                        break;
+                    }
+
+                    if !matches!(*grid.get(curr_x + 1, y), Rock::Empty) {
+                        break;
+                    }
+
+                    *grid.get_mut(curr_x, y) = Rock::Empty;
+                    *grid.get_mut(curr_x + 1, y) = Rock::Rounded;
+                    curr_x += 1;
+                }
+            }
+        }
+    }
+}
+
+fn tilt_south(grid: &mut RockGrid) {
+    for x in 0..grid.width() {
+        for y in (0..grid.height()).rev() {
+            if matches!(*grid.get(x, y), Rock::Rounded) {
+                let mut curr_y = y;
+
+                loop {
+                    if curr_y == grid.height() - 1 {
+                        break;
+                    }
+
+                    if !matches!(*grid.get(x, curr_y + 1), Rock::Empty) {
+                        break;
+                    }
+
+                    *grid.get_mut(x, curr_y) = Rock::Empty;
+                    *grid.get_mut(x, curr_y + 1) = Rock::Rounded;
+                    curr_y += 1;
+                }
+            }
+        }
+    }
+}
+
+fn tilt_west(grid: &mut RockGrid) {
+    for y in 0..grid.height() {
+        for x in 0..grid.width() {
+            if matches!(*grid.get(x, y), Rock::Rounded) {
+                let mut curr_x = x;
+
+                loop {
+                    if curr_x == 0 {
+                        break;
+                    }
+
+                    if !matches!(*grid.get(curr_x - 1, y), Rock::Empty) {
+                        break;
+                    }
+
+                    *grid.get_mut(curr_x, y) = Rock::Empty;
+                    *grid.get_mut(curr_x - 1, y) = Rock::Rounded;
+                    curr_x -= 1;
+                }
+            }
+        }
+    }
+}
+
 impl aoc::Solver for Solver {
     type Input = Grid<Rock>;
     type Output1 = usize;
@@ -58,45 +147,52 @@ impl aoc::Solver for Solver {
 
     fn part_1(input: &Self::Input) -> Self::Output1 {
         let mut grid = input.clone();
-
-        for x in 0..grid.width() {
-            for y in 0..grid.height() {
-                if matches!(*grid.get(x, y), Rock::Rounded) {
-                    let mut curr_y = y;
-
-                    loop {
-                        if curr_y == 0 {
-                            break;
-                        }
-
-                        if !matches!(*grid.get(x, curr_y - 1), Rock::Empty) {
-                            break;
-                        }
-
-                        *grid.get_mut(x, curr_y) = Rock::Empty;
-                        *grid.get_mut(x, curr_y - 1) = Rock::Rounded;
-                        curr_y -= 1;
-                    }
-                }
-            }
-        }
-
-        let mut sum = 0;
-
-        for x in 0..grid.width() {
-            for y in 0..grid.height() {
-                if matches!(*grid.get(x, y), Rock::Rounded) {
-                    sum += grid.height() - y;
-                }
-            }
-        }
-
-        sum
+        tilt_north(&mut grid);
+        get_load(&grid)
     }
 
-    fn part_2(_input: &Self::Input) -> Self::Output2 {
-        todo!()
+    fn part_2(input: &Self::Input) -> Self::Output2 {
+        let mut grid = input.clone();
+
+        let mut grids = vec![];
+        grids.push(grid.clone());
+
+        let mut cycle_start = 0;
+        let mut cycle_repeat = 0;
+
+        for _ in 0..1_000_000_000 {
+            tilt_north(&mut grid);
+            tilt_west(&mut grid);
+            tilt_south(&mut grid);
+            tilt_east(&mut grid);
+
+            if let Some(match_index) = grids.iter().position(|other| other == &grid) {
+                cycle_start = match_index;
+                cycle_repeat = grids.len();
+                break;
+            }
+
+            grids.push(grid.clone());
+        }
+
+        let cycle_len = cycle_repeat - cycle_start;
+
+        get_load(&grids[(1_000_000_000 - cycle_start) % cycle_len + cycle_start])
     }
+}
+
+fn get_load(grid: &RockGrid) -> usize {
+    let mut sum = 0;
+
+    for x in 0..grid.width() {
+        for y in 0..grid.height() {
+            if matches!(*grid.get(x, y), Rock::Rounded) {
+                sum += grid.height() - y;
+            }
+        }
+    }
+
+    sum
 }
 
 fn main() {
@@ -266,8 +362,264 @@ O.#..O.#.#
         assert_eq!(<Solver as aoc::Solver>::part_1(&get_input()), 136);
     }
 
-    //    #[test]
-    //    fn part_2() {
-    //        assert_eq!(<Solver as aoc::Solver>::part_2(&get_input()), todo!());
-    //    }
+    fn get_tilt_input() -> RockGrid {
+        Grid::from(
+            [
+                [
+                    Rock::Cubic,
+                    Rock::Empty,
+                    Rock::Rounded,
+                    Rock::Rounded,
+                    Rock::Cubic,
+                ]
+                .into_iter(),
+                [
+                    Rock::Rounded,
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Empty,
+                ]
+                .into_iter(),
+                [
+                    Rock::Rounded,
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Rounded,
+                ]
+                .into_iter(),
+                [
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Rounded,
+                ]
+                .into_iter(),
+                [
+                    Rock::Cubic,
+                    Rock::Rounded,
+                    Rock::Rounded,
+                    Rock::Empty,
+                    Rock::Cubic,
+                ]
+                .into_iter(),
+            ]
+            .into_iter(),
+        )
+    }
+
+    #[test]
+    fn tilt_north() {
+        let mut grid = get_tilt_input();
+        super::tilt_north(&mut grid);
+        let ref_grid = Grid::from(
+            [
+                [
+                    Rock::Cubic,
+                    Rock::Rounded,
+                    Rock::Rounded,
+                    Rock::Rounded,
+                    Rock::Cubic,
+                ]
+                .into_iter(),
+                [
+                    Rock::Rounded,
+                    Rock::Empty,
+                    Rock::Rounded,
+                    Rock::Empty,
+                    Rock::Rounded,
+                ]
+                .into_iter(),
+                [
+                    Rock::Rounded,
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Rounded,
+                ]
+                .into_iter(),
+                [
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Empty,
+                ]
+                .into_iter(),
+                [
+                    Rock::Cubic,
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Cubic,
+                ]
+                .into_iter(),
+            ]
+            .into_iter(),
+        );
+        assert_eq!(grid, ref_grid);
+    }
+
+    #[test]
+    fn tilt_east() {
+        let mut grid = get_tilt_input();
+        super::tilt_east(&mut grid);
+        let ref_grid = Grid::from(
+            [
+                [
+                    Rock::Cubic,
+                    Rock::Empty,
+                    Rock::Rounded,
+                    Rock::Rounded,
+                    Rock::Cubic,
+                ]
+                .into_iter(),
+                [
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Rounded,
+                ]
+                .into_iter(),
+                [
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Rounded,
+                    Rock::Rounded,
+                ]
+                .into_iter(),
+                [
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Rounded,
+                ]
+                .into_iter(),
+                [
+                    Rock::Cubic,
+                    Rock::Empty,
+                    Rock::Rounded,
+                    Rock::Rounded,
+                    Rock::Cubic,
+                ]
+                .into_iter(),
+            ]
+            .into_iter(),
+        );
+        assert_eq!(grid, ref_grid);
+    }
+
+    #[test]
+    fn tilt_south() {
+        let mut grid = get_tilt_input();
+        super::tilt_south(&mut grid);
+        let ref_grid = Grid::from(
+            [
+                [
+                    Rock::Cubic,
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Cubic,
+                ]
+                .into_iter(),
+                [
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Empty,
+                ]
+                .into_iter(),
+                [
+                    Rock::Rounded,
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Rounded,
+                ]
+                .into_iter(),
+                [
+                    Rock::Rounded,
+                    Rock::Empty,
+                    Rock::Rounded,
+                    Rock::Empty,
+                    Rock::Rounded,
+                ]
+                .into_iter(),
+                [
+                    Rock::Cubic,
+                    Rock::Rounded,
+                    Rock::Rounded,
+                    Rock::Rounded,
+                    Rock::Cubic,
+                ]
+                .into_iter(),
+            ]
+            .into_iter(),
+        );
+        assert_eq!(grid, ref_grid);
+    }
+
+    #[test]
+    fn tilt_west() {
+        let mut grid = get_tilt_input();
+        super::tilt_west(&mut grid);
+        let ref_grid = Grid::from(
+            [
+                [
+                    Rock::Cubic,
+                    Rock::Rounded,
+                    Rock::Rounded,
+                    Rock::Empty,
+                    Rock::Cubic,
+                ]
+                .into_iter(),
+                [
+                    Rock::Rounded,
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Empty,
+                ]
+                .into_iter(),
+                [
+                    Rock::Rounded,
+                    Rock::Rounded,
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Empty,
+                ]
+                .into_iter(),
+                [
+                    Rock::Rounded,
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Empty,
+                    Rock::Empty,
+                ]
+                .into_iter(),
+                [
+                    Rock::Cubic,
+                    Rock::Rounded,
+                    Rock::Rounded,
+                    Rock::Empty,
+                    Rock::Cubic,
+                ]
+                .into_iter(),
+            ]
+            .into_iter(),
+        );
+        assert_eq!(grid, ref_grid);
+    }
+
+    #[test]
+    fn part_2() {
+        assert_eq!(<Solver as aoc::Solver>::part_2(&get_input()), 64);
+    }
 }

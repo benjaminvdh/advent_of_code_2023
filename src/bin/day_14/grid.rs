@@ -1,7 +1,7 @@
 use std::fmt::{self, Display, Formatter};
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct Grid<T: PartialEq> {
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub struct Grid<T> {
     grid: Vec<T>,
     width: usize,
     height: usize,
