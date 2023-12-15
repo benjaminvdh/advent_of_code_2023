@@ -59,6 +59,11 @@ fn day_11() {
 }
 
 #[test]
+fn day_13() {
+    test(env!("CARGO_BIN_EXE_day_13"), 13);
+}
+
+#[test]
 fn day_14() {
     test(env!("CARGO_BIN_EXE_day_14"), 14);
 }
