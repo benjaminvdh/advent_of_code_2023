@@ -161,32 +161,65 @@ impl aoc::Solver for Solver {
     }
 
     fn part_1(input: &Self::Input) -> Self::Output1 {
-        let mut grid: Grid = input.clone();
-        let mut beams = vec![Beam {
-            pos: Point { x: 0, y: 0 },
-            dir: Dir::E,
-        }];
+        energize_grid(
+            input,
+            Beam {
+                pos: Point { x: 0, y: 0 },
+                dir: Dir::E,
+            },
+        )
+    }
 
-        loop {
-            beams = traverse(&mut grid, beams);
-
-            if beams.is_empty() {
-                break;
-            }
-        }
-
+    fn part_2(grid: &Self::Input) -> Self::Output2 {
         (0..grid.height())
-            .map(|y| {
-                (0..grid.width())
-                    .filter(|&x| grid.get(x, y).energized)
-                    .count()
+            .map(|y| Beam {
+                pos: Point { x: 0, y },
+                dir: Dir::E,
             })
-            .sum()
+            .chain((0..grid.height()).map(|y| Beam {
+                pos: Point {
+                    x: grid.width() - 1,
+                    y,
+                },
+                dir: Dir::W,
+            }))
+            .chain((0..grid.width()).map(|x| Beam {
+                pos: Point { x, y: 0 },
+                dir: Dir::S,
+            }))
+            .chain((0..grid.width()).map(|x| Beam {
+                pos: Point {
+                    x,
+                    y: grid.height() - 1,
+                },
+                dir: Dir::N,
+            }))
+            .map(|beam| energize_grid(grid, beam))
+            .max()
+            .unwrap()
+    }
+}
+
+fn energize_grid(grid: &Grid, initial_beam: Beam) -> usize {
+    let mut grid: Grid = grid.clone();
+
+    let mut beams = vec![initial_beam];
+
+    loop {
+        beams = traverse(&mut grid, beams);
+
+        if beams.is_empty() {
+            break;
+        }
     }
 
-    fn part_2(_input: &Self::Input) -> Self::Output2 {
-        todo!()
-    }
+    (0..grid.height())
+        .map(|y| {
+            (0..grid.width())
+                .filter(|&x| grid.get(x, y).energized)
+                .count()
+        })
+        .sum()
 }
 
 fn traverse(grid: &mut Grid, beams: Vec<Beam>) -> Vec<Beam> {
@@ -373,6 +406,6 @@ mod tests {
 
     #[test]
     fn part_2() {
-        assert_eq!(<Solver as aoc::Solver>::part_2(&get_input()), todo!());
+        assert_eq!(<Solver as aoc::Solver>::part_2(&get_input()), 51);
     }
 }
