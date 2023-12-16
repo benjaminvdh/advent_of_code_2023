@@ -42,13 +42,8 @@ impl<T: PartialEq> Grid<T> {
     }
 }
 
-impl<T, I, II> From<II> for Grid<T>
-where
-    T: PartialEq,
-    I: Iterator<Item = T>,
-    II: Iterator<Item = I>,
-{
-    fn from(iter: II) -> Self {
+impl<T, I: IntoIterator<Item = T>> FromIterator<I> for Grid<T> {
+    fn from_iter<II: IntoIterator<Item = I>>(iter: II) -> Self {
         let mut width = 0;
         let mut height = 0;
         let mut grid = vec![];

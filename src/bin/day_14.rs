@@ -135,10 +135,7 @@ impl aoc::Solver for Solver {
     type Output2 = usize;
 
     fn parse(input: &str) -> Self::Input {
-        input
-            .lines()
-            .map(|line| line.chars().map(|c| c.into()))
-            .into()
+        RockGrid::from_iter(input.lines().map(|line| line.chars().map(|c| c.into())))
     }
 
     fn part_1(input: &Self::Input) -> Self::Output1 {
@@ -200,7 +197,7 @@ mod tests {
     use super::*;
 
     fn get_input() -> <Solver as aoc::Solver>::Input {
-        Grid::from(
+        RockGrid::from_iter(
             [
                 [
                     Rock::Rounded,
@@ -359,7 +356,7 @@ O.#..O.#.#
     }
 
     fn get_tilt_input() -> RockGrid {
-        Grid::from(
+        RockGrid::from_iter(
             [
                 [
                     Rock::Cubic,
@@ -410,7 +407,7 @@ O.#..O.#.#
     fn tilt_north() {
         let mut grid = get_tilt_input();
         super::tilt_north(&mut grid);
-        let ref_grid = Grid::from(
+        let ref_grid = RockGrid::from_iter(
             [
                 [
                     Rock::Cubic,
@@ -462,7 +459,7 @@ O.#..O.#.#
     fn tilt_east() {
         let mut grid = get_tilt_input();
         super::tilt_east(&mut grid);
-        let ref_grid = Grid::from(
+        let ref_grid = RockGrid::from_iter(
             [
                 [
                     Rock::Cubic,
@@ -514,7 +511,7 @@ O.#..O.#.#
     fn tilt_south() {
         let mut grid = get_tilt_input();
         super::tilt_south(&mut grid);
-        let ref_grid = Grid::from(
+        let ref_grid = RockGrid::from_iter(
             [
                 [
                     Rock::Cubic,
@@ -566,7 +563,7 @@ O.#..O.#.#
     fn tilt_west() {
         let mut grid = get_tilt_input();
         super::tilt_west(&mut grid);
-        let ref_grid = Grid::from(
+        let ref_grid = RockGrid::from_iter(
             [
                 [
                     Rock::Cubic,
