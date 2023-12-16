@@ -1,9 +1,5 @@
 use std::fmt::{self, Display, Formatter};
 
-pub mod grid;
-
-use grid::Grid;
-
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Rock {
     Empty,
@@ -35,7 +31,7 @@ impl From<char> for Rock {
 
 struct Solver;
 
-type RockGrid = Grid<Rock>;
+type RockGrid = aoc::Grid<Rock>;
 
 fn tilt_north(grid: &mut RockGrid) {
     for x in 0..grid.width() {
@@ -134,7 +130,7 @@ fn tilt_west(grid: &mut RockGrid) {
 }
 
 impl aoc::Solver for Solver {
-    type Input = Grid<Rock>;
+    type Input = RockGrid;
     type Output1 = usize;
     type Output2 = usize;
 

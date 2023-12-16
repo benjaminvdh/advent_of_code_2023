@@ -59,8 +59,10 @@ use std::fmt::Display;
 use std::fs;
 use std::time::{Duration, Instant};
 
-mod args;
+pub mod grid;
+pub use grid::Grid;
 
+mod args;
 use args::Args;
 
 pub trait Solver {
