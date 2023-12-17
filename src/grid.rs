@@ -8,14 +8,6 @@ pub struct Grid<T> {
 }
 
 impl<T: PartialEq> Grid<T> {
-    pub fn new(width: usize, height: usize) -> Self {
-        Self {
-            grid: Vec::with_capacity(width * height),
-            width,
-            height,
-        }
-    }
-
     pub fn get(&self, x: usize, y: usize) -> &T {
         let index = self.get_index(x, y);
         &self.grid[index]
@@ -39,6 +31,16 @@ impl<T: PartialEq> Grid<T> {
         debug_assert!(y < self.height);
 
         y * self.width + x
+    }
+}
+
+impl<T: Copy> Grid<T> {
+    pub fn new(width: usize, height: usize, val: T) -> Self {
+        Self {
+            grid: [val].repeat(width * height),
+            width,
+            height,
+        }
     }
 }
 
