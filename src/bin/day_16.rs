@@ -1,3 +1,5 @@
+use aoc::Dir;
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct Point {
     x: usize,
@@ -51,43 +53,33 @@ impl Point {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-enum Dir {
-    N,
-    E,
-    S,
-    W,
-}
-
-impl Dir {
-    fn update(&self, contents: Contents) -> Vec<Self> {
-        match contents {
-            Contents::Empty => vec![*self],
-            Contents::Acute => vec![match *self {
-                Dir::N => Dir::E,
-                Dir::E => Dir::N,
-                Dir::S => Dir::W,
-                Dir::W => Dir::S,
-            }],
-            Contents::Grave => vec![match *self {
-                Dir::N => Dir::W,
-                Dir::E => Dir::S,
-                Dir::S => Dir::E,
-                Dir::W => Dir::N,
-            }],
-            Contents::Hor => match *self {
-                Dir::N => vec![Dir::W, Dir::E],
-                Dir::E => vec![Dir::E],
-                Dir::S => vec![Dir::W, Dir::E],
-                Dir::W => vec![Dir::W],
-            },
-            Contents::Ver => match *self {
-                Dir::N => vec![Dir::N],
-                Dir::E => vec![Dir::N, Dir::S],
-                Dir::S => vec![Dir::S],
-                Dir::W => vec![Dir::N, Dir::S],
-            },
-        }
+fn update_dir(dir: Dir, contents: Contents) -> Vec<Dir> {
+    match contents {
+        Contents::Empty => vec![dir],
+        Contents::Acute => vec![match dir {
+            Dir::N => Dir::E,
+            Dir::E => Dir::N,
+            Dir::S => Dir::W,
+            Dir::W => Dir::S,
+        }],
+        Contents::Grave => vec![match dir {
+            Dir::N => Dir::W,
+            Dir::E => Dir::S,
+            Dir::S => Dir::E,
+            Dir::W => Dir::N,
+        }],
+        Contents::Hor => match dir {
+            Dir::N => vec![Dir::W, Dir::E],
+            Dir::E => vec![Dir::E],
+            Dir::S => vec![Dir::W, Dir::E],
+            Dir::W => vec![Dir::W],
+        },
+        Contents::Ver => match dir {
+            Dir::N => vec![Dir::N],
+            Dir::E => vec![Dir::N, Dir::S],
+            Dir::S => vec![Dir::S],
+            Dir::W => vec![Dir::N, Dir::S],
+        },
     }
 }
 
@@ -238,7 +230,7 @@ fn traverse(grid: &mut Grid, beams: Vec<Beam>) -> Vec<Beam> {
             } else {
                 grid.get_mut(x, y).handled.push(beam);
 
-                let new_dirs = beam.dir.update(grid.get(x, y).contents);
+                let new_dirs = update_dir(beam.dir, grid.get(x, y).contents);
 
                 new_dirs
                     .into_iter()

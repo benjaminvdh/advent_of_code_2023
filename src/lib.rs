@@ -59,7 +59,9 @@ use std::fmt::Display;
 use std::fs;
 use std::time::{Duration, Instant};
 
+pub mod dir;
 pub mod grid;
+pub use dir::Dir;
 pub use grid::Grid;
 
 mod args;
