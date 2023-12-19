@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::ops::RangeInclusive;
 use std::str::FromStr;
 
 struct Solver;
@@ -101,6 +102,231 @@ impl Cond {
             Cond::Always(out) => out.clone(),
         }
     }
+
+    pub fn split(&self, multipart: &Multipart) -> (Option<(Multipart, Out)>, Option<Multipart>) {
+        match self {
+            Cond::Test {
+                prop,
+                op,
+                crit,
+                out,
+            } => match op {
+                Op::Gt => match prop {
+                    Prop::X => {
+                        let acc = crit + 1..=*multipart.x.end();
+                        let acc = if acc.is_empty() {
+                            None
+                        } else {
+                            Some((
+                                Multipart {
+                                    x: acc,
+                                    ..multipart.clone()
+                                },
+                                out.clone(),
+                            ))
+                        };
+
+                        let rej = *multipart.x.start()..=*crit;
+                        let rej = if rej.is_empty() {
+                            None
+                        } else {
+                            Some(Multipart {
+                                x: rej,
+                                ..multipart.clone()
+                            })
+                        };
+
+                        (acc, rej)
+                    }
+                    Prop::M => {
+                        let acc = crit + 1..=*multipart.m.end();
+                        let acc = if acc.is_empty() {
+                            None
+                        } else {
+                            Some((
+                                Multipart {
+                                    m: acc,
+                                    ..multipart.clone()
+                                },
+                                out.clone(),
+                            ))
+                        };
+
+                        let rej = *multipart.m.start()..=*crit;
+                        let rej = if rej.is_empty() {
+                            None
+                        } else {
+                            Some(Multipart {
+                                m: rej,
+                                ..multipart.clone()
+                            })
+                        };
+
+                        (acc, rej)
+                    }
+                    Prop::A => {
+                        let acc = crit + 1..=*multipart.a.end();
+                        let acc = if acc.is_empty() {
+                            None
+                        } else {
+                            Some((
+                                Multipart {
+                                    a: acc,
+                                    ..multipart.clone()
+                                },
+                                out.clone(),
+                            ))
+                        };
+
+                        let rej = *multipart.a.start()..=*crit;
+                        let rej = if rej.is_empty() {
+                            None
+                        } else {
+                            Some(Multipart {
+                                a: rej,
+                                ..multipart.clone()
+                            })
+                        };
+
+                        (acc, rej)
+                    }
+                    Prop::S => {
+                        let acc = crit + 1..=*multipart.s.end();
+                        let acc = if acc.is_empty() {
+                            None
+                        } else {
+                            Some((
+                                Multipart {
+                                    s: acc,
+                                    ..multipart.clone()
+                                },
+                                out.clone(),
+                            ))
+                        };
+
+                        let rej = *multipart.s.start()..=*crit;
+                        let rej = if rej.is_empty() {
+                            None
+                        } else {
+                            Some(Multipart {
+                                s: rej,
+                                ..multipart.clone()
+                            })
+                        };
+
+                        (acc, rej)
+                    }
+                },
+                Op::Lt => match prop {
+                    Prop::X => {
+                        let acc = *multipart.x.start()..=crit - 1;
+                        let acc = if acc.is_empty() {
+                            None
+                        } else {
+                            Some((
+                                Multipart {
+                                    x: acc,
+                                    ..multipart.clone()
+                                },
+                                out.clone(),
+                            ))
+                        };
+
+                        let rej = *crit..=*multipart.x.end();
+                        let rej = if rej.is_empty() {
+                            None
+                        } else {
+                            Some(Multipart {
+                                x: rej,
+                                ..multipart.clone()
+                            })
+                        };
+
+                        (acc, rej)
+                    }
+                    Prop::M => {
+                        let acc = *multipart.m.start()..=crit - 1;
+                        let acc = if acc.is_empty() {
+                            None
+                        } else {
+                            Some((
+                                Multipart {
+                                    m: acc,
+                                    ..multipart.clone()
+                                },
+                                out.clone(),
+                            ))
+                        };
+
+                        let rej = *crit..=*multipart.m.end();
+                        let rej = if rej.is_empty() {
+                            None
+                        } else {
+                            Some(Multipart {
+                                m: rej,
+                                ..multipart.clone()
+                            })
+                        };
+
+                        (acc, rej)
+                    }
+                    Prop::A => {
+                        let acc = *multipart.a.start()..=crit - 1;
+                        let acc = if acc.is_empty() {
+                            None
+                        } else {
+                            Some((
+                                Multipart {
+                                    a: acc,
+                                    ..multipart.clone()
+                                },
+                                out.clone(),
+                            ))
+                        };
+
+                        let rej = *crit..=*multipart.a.end();
+                        let rej = if rej.is_empty() {
+                            None
+                        } else {
+                            Some(Multipart {
+                                a: rej,
+                                ..multipart.clone()
+                            })
+                        };
+
+                        (acc, rej)
+                    }
+                    Prop::S => {
+                        let acc = *multipart.s.start()..=crit - 1;
+                        let acc = if acc.is_empty() {
+                            None
+                        } else {
+                            Some((
+                                Multipart {
+                                    s: acc,
+                                    ..multipart.clone()
+                                },
+                                out.clone(),
+                            ))
+                        };
+
+                        let rej = *crit..=*multipart.s.end();
+                        let rej = if rej.is_empty() {
+                            None
+                        } else {
+                            Some(Multipart {
+                                s: rej,
+                                ..multipart.clone()
+                            })
+                        };
+
+                        (acc, rej)
+                    }
+                },
+            },
+            Cond::Always(out) => (Some((multipart.clone(), out.clone())), None),
+        }
+    }
 }
 
 impl From<&str> for Cond {
@@ -138,6 +364,29 @@ impl Workflow {
         }
         panic!()
     }
+
+    pub fn apply_multipart(&self, multipart: &Multipart) -> Vec<(Multipart, Out)> {
+        let mut multiparts = vec![];
+        let mut multipart = multipart.clone();
+
+        for cond in &self.conds {
+            let (acc, rej) = cond.split(&multipart);
+
+            if let Some((acc, out)) = acc {
+                multiparts.push((acc, out));
+            }
+
+            if let Some(rej) = rej {
+                multipart = rej;
+            }
+
+            if multipart.is_empty() {
+                break;
+            }
+        }
+
+        multiparts
+    }
 }
 
 fn parse_workflow(line: &str) -> (String, Workflow) {
@@ -166,6 +415,37 @@ impl Workflows {
             }
         }
     }
+
+    pub fn get_num_accepted_ratings(&self) -> usize {
+        let mut tentative = vec![(Multipart::new(), Out::Cont("in".to_string()))];
+        let mut accepted = vec![];
+
+        loop {
+            let mut new_tentative = vec![];
+
+            for (multipart, out) in tentative {
+                match out {
+                    Out::Accept => accepted.push(multipart),
+                    Out::Reject | Out::Ignore => continue,
+                    Out::Cont(dst) => {
+                        let mut result = self.0.get(&dst).unwrap().apply_multipart(&multipart);
+                        new_tentative.append(&mut result);
+                    }
+                }
+            }
+
+            if new_tentative.is_empty() {
+                break;
+            }
+
+            tentative = new_tentative;
+        }
+
+        accepted
+            .into_iter()
+            .map(|multipart| multipart.get_num_combinations())
+            .sum()
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -179,6 +459,36 @@ struct Part {
 impl Part {
     fn get_rating(&self) -> usize {
         self.x + self.m + self.a + self.s
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct Multipart {
+    x: RangeInclusive<usize>,
+    m: RangeInclusive<usize>,
+    a: RangeInclusive<usize>,
+    s: RangeInclusive<usize>,
+}
+
+impl Multipart {
+    fn new() -> Self {
+        Self {
+            x: 1..=4000,
+            m: 1..=4000,
+            a: 1..=4000,
+            s: 1..=4000,
+        }
+    }
+
+    fn get_num_combinations(&self) -> usize {
+        [&self.x, &self.m, &self.a, &self.s]
+            .iter()
+            .map(|range| range.end() - range.start() + 1)
+            .product()
+    }
+
+    fn is_empty(&self) -> bool {
+        self.x.is_empty() && self.m.is_empty() && self.a.is_empty() && self.s.is_empty()
     }
 }
 
@@ -223,8 +533,9 @@ impl aoc::Solver for Solver {
             .sum()
     }
 
-    fn part_2(_input: &Self::Input) -> Self::Output2 {
-        todo!()
+    fn part_2(input: &Self::Input) -> Self::Output2 {
+        let (workflows, _) = input;
+        workflows.get_num_accepted_ratings()
     }
 }
 
@@ -480,8 +791,10 @@ hdj{m>838:A,pv}
     }
 
     #[test]
-    #[allow(unreachable_code)]
     fn part_2() {
-        assert_eq!(<Solver as aoc::Solver>::part_2(&get_input()), todo!());
+        assert_eq!(
+            <Solver as aoc::Solver>::part_2(&get_input()),
+            167409079868000
+        );
     }
 }
