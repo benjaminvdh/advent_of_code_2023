@@ -44,11 +44,13 @@
 //!     }
 //!
 //!     #[test]
+//!     #[allow(unreachable_code)]
 //!     fn part_1() {
 //!         assert_eq!(<Solver as aoc::Solver>::part_1(&get_input()), todo!());
 //!     }
 //!
 //!     #[test]
+//!     #[allow(unreachable_code)]
 //!     fn part_2() {
 //!         assert_eq!(<Solver as aoc::Solver>::part_2(&get_input()), todo!());
 //!     }
