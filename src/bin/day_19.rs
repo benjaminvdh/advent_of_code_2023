@@ -42,6 +42,7 @@ impl From<char> for Prop {
 #[derive(Clone, Debug, PartialEq)]
 enum Out {
     Cont(String),
+    Ignore,
     Accept,
     Reject,
 }
@@ -69,6 +70,39 @@ enum Cond {
     Always(Out),
 }
 
+impl Cond {
+    pub fn apply(&self, part: &Part) -> Out {
+        match self {
+            Cond::Test {
+                prop,
+                op,
+                crit,
+                out,
+            } => {
+                if match op {
+                    Op::Gt => match prop {
+                        Prop::X => part.x > *crit,
+                        Prop::M => part.m > *crit,
+                        Prop::A => part.a > *crit,
+                        Prop::S => part.s > *crit,
+                    },
+                    Op::Lt => match prop {
+                        Prop::X => part.x < *crit,
+                        Prop::M => part.m < *crit,
+                        Prop::A => part.a < *crit,
+                        Prop::S => part.s < *crit,
+                    },
+                } {
+                    out.clone()
+                } else {
+                    Out::Ignore
+                }
+            }
+            Cond::Always(out) => out.clone(),
+        }
+    }
+}
+
 impl From<&str> for Cond {
     fn from(input: &str) -> Cond {
         if let Some(c) = input.chars().nth(1) {
@@ -92,6 +126,20 @@ struct Workflow {
     conds: Vec<Cond>,
 }
 
+impl Workflow {
+    pub fn apply(&self, part: &Part) -> Out {
+        for cond in &self.conds {
+            match cond.apply(part) {
+                o @ Out::Cont(_) | o @ Out::Accept | o @ Out::Reject => {
+                    return o;
+                }
+                Out::Ignore => continue,
+            }
+        }
+        panic!()
+    }
+}
+
 fn parse_workflow(line: &str) -> (String, Workflow) {
     let (name, workflow) = line.split_once('{').unwrap();
     let workflow = &workflow[..workflow.len() - 1];
@@ -102,7 +150,23 @@ fn parse_workflow(line: &str) -> (String, Workflow) {
     (name.to_string(), Workflow { conds })
 }
 
-type Workflows = Vec<(String, Workflow)>;
+#[derive(Debug, PartialEq)]
+struct Workflows(HashMap<String, Workflow>);
+
+impl Workflows {
+    pub fn accepts(&self, part: &Part) -> bool {
+        let mut cur_name = "in".to_string();
+
+        loop {
+            match self.0.get(&cur_name).unwrap().apply(part) {
+                Out::Accept => return true,
+                Out::Reject => return false,
+                Out::Cont(next) => cur_name = next,
+                _ => panic!(),
+            }
+        }
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct Part {
@@ -110,6 +174,12 @@ struct Part {
     m: usize,
     a: usize,
     s: usize,
+}
+
+impl Part {
+    fn get_rating(&self) -> usize {
+        self.x + self.m + self.a + self.s
+    }
 }
 
 impl From<&str> for Part {
@@ -138,13 +208,19 @@ impl aoc::Solver for Solver {
 
     fn parse(input: &str) -> Self::Input {
         let (workflows, parts) = input.split_once("\n\n").unwrap();
-        let workflows = workflows.lines().map(|line| parse_workflow(line)).collect();
+        let workflows = Workflows(workflows.lines().map(|line| parse_workflow(line)).collect());
         let parts = parts.lines().map(|line| line.into()).collect();
         (workflows, parts)
     }
 
-    fn part_1(_input: &Self::Input) -> Self::Output1 {
-        todo!()
+    fn part_1(input: &Self::Input) -> Self::Output1 {
+        let (workflows, parts) = input;
+
+        parts
+            .iter()
+            .filter(|part| workflows.accepts(part))
+            .map(|part| part.get_rating())
+            .sum()
     }
 
     fn part_2(_input: &Self::Input) -> Self::Output2 {
@@ -162,182 +238,184 @@ mod tests {
 
     fn get_input() -> <Solver as aoc::Solver>::Input {
         (
-            [
-                (
-                    "px".to_string(),
-                    Workflow {
-                        conds: vec![
-                            Cond::Test {
-                                prop: Prop::A,
-                                op: Op::Lt,
-                                crit: 2006,
-                                out: Out::Cont("qkq".to_string()),
-                            },
-                            Cond::Test {
-                                prop: Prop::M,
-                                op: Op::Gt,
-                                crit: 2090,
-                                out: Out::Accept,
-                            },
-                            Cond::Always(Out::Cont("rfg".to_string())),
-                        ],
-                    },
-                ),
-                (
-                    "pv".to_string(),
-                    Workflow {
-                        conds: vec![
-                            Cond::Test {
-                                prop: Prop::A,
-                                op: Op::Gt,
-                                crit: 1716,
-                                out: Out::Reject,
-                            },
-                            Cond::Always(Out::Accept),
-                        ],
-                    },
-                ),
-                (
-                    "lnx".to_string(),
-                    Workflow {
-                        conds: vec![
-                            Cond::Test {
-                                prop: Prop::M,
-                                op: Op::Gt,
-                                crit: 1548,
-                                out: Out::Accept,
-                            },
-                            Cond::Always(Out::Accept),
-                        ],
-                    },
-                ),
-                (
-                    "rfg".to_string(),
-                    Workflow {
-                        conds: vec![
-                            Cond::Test {
-                                prop: Prop::S,
-                                op: Op::Lt,
-                                crit: 537,
-                                out: Out::Cont("gd".to_string()),
-                            },
-                            Cond::Test {
-                                prop: Prop::X,
-                                op: Op::Gt,
-                                crit: 2440,
-                                out: Out::Reject,
-                            },
-                            Cond::Always(Out::Accept),
-                        ],
-                    },
-                ),
-                (
-                    "qs".to_string(),
-                    Workflow {
-                        conds: vec![
-                            Cond::Test {
-                                prop: Prop::S,
-                                op: Op::Gt,
-                                crit: 3448,
-                                out: Out::Accept,
-                            },
-                            Cond::Always(Out::Cont("lnx".to_string())),
-                        ],
-                    },
-                ),
-                (
-                    "qkq".to_string(),
-                    Workflow {
-                        conds: vec![
-                            Cond::Test {
-                                prop: Prop::X,
-                                op: Op::Lt,
-                                crit: 1416,
-                                out: Out::Accept,
-                            },
-                            Cond::Always(Out::Cont("crn".to_string())),
-                        ],
-                    },
-                ),
-                (
-                    "crn".to_string(),
-                    Workflow {
-                        conds: vec![
-                            Cond::Test {
-                                prop: Prop::X,
-                                op: Op::Gt,
-                                crit: 2662,
-                                out: Out::Accept,
-                            },
-                            Cond::Always(Out::Reject),
-                        ],
-                    },
-                ),
-                (
-                    "in".to_string(),
-                    Workflow {
-                        conds: vec![
-                            Cond::Test {
-                                prop: Prop::S,
-                                op: Op::Lt,
-                                crit: 1351,
-                                out: Out::Cont("px".to_string()),
-                            },
-                            Cond::Always(Out::Cont("qqz".to_string())),
-                        ],
-                    },
-                ),
-                (
-                    "qqz".to_string(),
-                    Workflow {
-                        conds: vec![
-                            Cond::Test {
-                                prop: Prop::S,
-                                op: Op::Gt,
-                                crit: 2770,
-                                out: Out::Cont("qs".to_string()),
-                            },
-                            Cond::Test {
-                                prop: Prop::M,
-                                op: Op::Lt,
-                                crit: 1801,
-                                out: Out::Cont("hdj".to_string()),
-                            },
-                            Cond::Always(Out::Reject),
-                        ],
-                    },
-                ),
-                (
-                    "gd".to_string(),
-                    Workflow {
-                        conds: vec![
-                            Cond::Test {
-                                prop: Prop::A,
-                                op: Op::Gt,
-                                crit: 3333,
-                                out: Out::Reject,
-                            },
-                            Cond::Always(Out::Reject),
-                        ],
-                    },
-                ),
-                (
-                    "hdj".to_string(),
-                    Workflow {
-                        conds: vec![
-                            Cond::Test {
-                                prop: Prop::M,
-                                op: Op::Gt,
-                                crit: 838,
-                                out: Out::Accept,
-                            },
-                            Cond::Always(Out::Cont("pv".to_string())),
-                        ],
-                    },
-                ),
-            ]
-            .into_iter()
-            .collect(),
+            Workflows(
+                [
+                    (
+                        "px".to_string(),
+                        Workflow {
+                            conds: vec![
+                                Cond::Test {
+                                    prop: Prop::A,
+                                    op: Op::Lt,
+                                    crit: 2006,
+                                    out: Out::Cont("qkq".to_string()),
+                                },
+                                Cond::Test {
+                                    prop: Prop::M,
+                                    op: Op::Gt,
+                                    crit: 2090,
+                                    out: Out::Accept,
+                                },
+                                Cond::Always(Out::Cont("rfg".to_string())),
+                            ],
+                        },
+                    ),
+                    (
+                        "pv".to_string(),
+                        Workflow {
+                            conds: vec![
+                                Cond::Test {
+                                    prop: Prop::A,
+                                    op: Op::Gt,
+                                    crit: 1716,
+                                    out: Out::Reject,
+                                },
+                                Cond::Always(Out::Accept),
+                            ],
+                        },
+                    ),
+                    (
+                        "lnx".to_string(),
+                        Workflow {
+                            conds: vec![
+                                Cond::Test {
+                                    prop: Prop::M,
+                                    op: Op::Gt,
+                                    crit: 1548,
+                                    out: Out::Accept,
+                                },
+                                Cond::Always(Out::Accept),
+                            ],
+                        },
+                    ),
+                    (
+                        "rfg".to_string(),
+                        Workflow {
+                            conds: vec![
+                                Cond::Test {
+                                    prop: Prop::S,
+                                    op: Op::Lt,
+                                    crit: 537,
+                                    out: Out::Cont("gd".to_string()),
+                                },
+                                Cond::Test {
+                                    prop: Prop::X,
+                                    op: Op::Gt,
+                                    crit: 2440,
+                                    out: Out::Reject,
+                                },
+                                Cond::Always(Out::Accept),
+                            ],
+                        },
+                    ),
+                    (
+                        "qs".to_string(),
+                        Workflow {
+                            conds: vec![
+                                Cond::Test {
+                                    prop: Prop::S,
+                                    op: Op::Gt,
+                                    crit: 3448,
+                                    out: Out::Accept,
+                                },
+                                Cond::Always(Out::Cont("lnx".to_string())),
+                            ],
+                        },
+                    ),
+                    (
+                        "qkq".to_string(),
+                        Workflow {
+                            conds: vec![
+                                Cond::Test {
+                                    prop: Prop::X,
+                                    op: Op::Lt,
+                                    crit: 1416,
+                                    out: Out::Accept,
+                                },
+                                Cond::Always(Out::Cont("crn".to_string())),
+                            ],
+                        },
+                    ),
+                    (
+                        "crn".to_string(),
+                        Workflow {
+                            conds: vec![
+                                Cond::Test {
+                                    prop: Prop::X,
+                                    op: Op::Gt,
+                                    crit: 2662,
+                                    out: Out::Accept,
+                                },
+                                Cond::Always(Out::Reject),
+                            ],
+                        },
+                    ),
+                    (
+                        "in".to_string(),
+                        Workflow {
+                            conds: vec![
+                                Cond::Test {
+                                    prop: Prop::S,
+                                    op: Op::Lt,
+                                    crit: 1351,
+                                    out: Out::Cont("px".to_string()),
+                                },
+                                Cond::Always(Out::Cont("qqz".to_string())),
+                            ],
+                        },
+                    ),
+                    (
+                        "qqz".to_string(),
+                        Workflow {
+                            conds: vec![
+                                Cond::Test {
+                                    prop: Prop::S,
+                                    op: Op::Gt,
+                                    crit: 2770,
+                                    out: Out::Cont("qs".to_string()),
+                                },
+                                Cond::Test {
+                                    prop: Prop::M,
+                                    op: Op::Lt,
+                                    crit: 1801,
+                                    out: Out::Cont("hdj".to_string()),
+                                },
+                                Cond::Always(Out::Reject),
+                            ],
+                        },
+                    ),
+                    (
+                        "gd".to_string(),
+                        Workflow {
+                            conds: vec![
+                                Cond::Test {
+                                    prop: Prop::A,
+                                    op: Op::Gt,
+                                    crit: 3333,
+                                    out: Out::Reject,
+                                },
+                                Cond::Always(Out::Reject),
+                            ],
+                        },
+                    ),
+                    (
+                        "hdj".to_string(),
+                        Workflow {
+                            conds: vec![
+                                Cond::Test {
+                                    prop: Prop::M,
+                                    op: Op::Gt,
+                                    crit: 838,
+                                    out: Out::Accept,
+                                },
+                                Cond::Always(Out::Cont("pv".to_string())),
+                            ],
+                        },
+                    ),
+                ]
+                .into_iter()
+                .collect(),
+            ),
             vec![
                 Part {
                     x: 787,
@@ -397,9 +475,8 @@ hdj{m>838:A,pv}
     }
 
     #[test]
-    #[allow(unreachable_code)]
     fn part_1() {
-        assert_eq!(<Solver as aoc::Solver>::part_1(&get_input()), todo!());
+        assert_eq!(<Solver as aoc::Solver>::part_1(&get_input()), 19114);
     }
 
     #[test]
