@@ -1,5 +1,17 @@
 use std::fmt::{self, Display, Formatter};
 
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct Pos {
+    pub x: usize,
+    pub y: usize,
+}
+
+impl Pos {
+    pub fn new(x: usize, y: usize) -> Self {
+        Self { x, y }
+    }
+}
+
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Grid<T> {
     grid: Vec<T>,
@@ -31,6 +43,34 @@ impl<T: PartialEq> Grid<T> {
         debug_assert!(y < self.height);
 
         y * self.width + x
+    }
+
+    pub fn get_neighbors(&self, pos: &Pos) -> Vec<Pos> {
+        let mut neighbors = vec![];
+
+        if let Some(x) = pos.x.checked_sub(1) {
+            neighbors.push(Pos { x, ..*pos });
+        }
+
+        if let Some(y) = pos.y.checked_sub(1) {
+            neighbors.push(Pos { y, ..*pos });
+        }
+
+        if pos.x < self.width - 1 {
+            neighbors.push(Pos {
+                x: pos.x + 1,
+                ..*pos
+            });
+        }
+
+        if pos.y < self.height - 1 {
+            neighbors.push(Pos {
+                y: pos.y + 1,
+                ..*pos
+            });
+        }
+
+        neighbors
     }
 }
 
