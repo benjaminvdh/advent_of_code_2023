@@ -59,6 +59,17 @@ fn day_11() {
 }
 
 #[test]
+fn day_12_part_one() {
+    test_part_one(env!("CARGO_BIN_EXE_day_12"), 12);
+}
+
+#[test]
+#[ignore = "not yet implemented"]
+fn day_12() {
+    test(env!("CARGO_BIN_EXE_day_12"), 12);
+}
+
+#[test]
 fn day_13() {
     test(env!("CARGO_BIN_EXE_day_13"), 13);
 }
@@ -79,22 +90,47 @@ fn day_16() {
 }
 
 #[test]
+fn day_18_part_one() {
+    test_part_one(env!("CARGO_BIN_EXE_day_18"), 18);
+}
+
+#[test]
+#[ignore = "not yet implemented"]
+fn day_18() {
+    test(env!("CARGO_BIN_EXE_day_18"), 18);
+}
+
+#[test]
 fn day_19() {
     test(env!("CARGO_BIN_EXE_day_19"), 19);
 }
 
-fn parse_string(string: &str) -> (&str, &str) {
-    let mut splits = string.split_terminator("\0");
-    (splits.next().unwrap(), splits.next().unwrap())
+fn parse_string(string: &str) -> (Option<&str>, Option<&str>) {
+    let mut splits = string.trim().split_terminator('\0');
+
+    (splits.next(), splits.next())
 }
 
 fn test(exe: &str, day: u8) {
-    let output = Command::new(exe)
-        .arg("--quiet")
-        .arg(format!("data/input/{day}"))
-        .output()
-        .unwrap();
+    let mut command = Command::new(exe);
 
+    test_command(command.arg("--quiet").arg(format!("data/input/{day}")), day);
+}
+
+fn test_part_one(exe: &str, day: u8) {
+    let mut command = Command::new(exe);
+
+    test_command(
+        command
+            .arg("--quiet")
+            .arg("--one")
+            .arg(format!("data/input/{day}")),
+        day,
+    );
+}
+
+fn test_command(command: &mut Command, day: u8) {
+    let output = command.output().unwrap();
     assert!(output.status.success());
 
     let output = String::from_utf8(output.stdout).unwrap();
