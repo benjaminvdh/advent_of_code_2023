@@ -1,5 +1,7 @@
 use std::fmt::{self, Display, Formatter};
 
+use crate::Dir;
+
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct Pos {
     pub x: usize,
@@ -9,6 +11,27 @@ pub struct Pos {
 impl Pos {
     pub fn new(x: usize, y: usize) -> Self {
         Self { x, y }
+    }
+
+    pub fn apply(self, dir: Dir) -> Self {
+        match dir {
+            Dir::N => Self {
+                y: self.y - 1,
+                ..self
+            },
+            Dir::E => Self {
+                x: self.x + 1,
+                ..self
+            },
+            Dir::S => Self {
+                y: self.y + 1,
+                ..self
+            },
+            Dir::W => Self {
+                x: self.x - 1,
+                ..self
+            },
+        }
     }
 }
 

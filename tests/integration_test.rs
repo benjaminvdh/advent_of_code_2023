@@ -139,6 +139,17 @@ fn day_22() {
     test(env!("CARGO_BIN_EXE_day_22"), 22);
 }
 
+#[test]
+fn day_23_part_one() {
+    test_part_one(env!("CARGO_BIN_EXE_day_23"), 23);
+}
+
+#[test]
+#[ignore = "not yet implemented"]
+fn day_23() {
+    test(env!("CARGO_BIN_EXE_day_23"), 23);
+}
+
 fn parse_string(string: &str) -> (Option<&str>, Option<&str>) {
     let mut splits = string.trim().split_terminator('\0');
 
